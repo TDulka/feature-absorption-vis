@@ -38,24 +38,41 @@ def main():
     st.sidebar.header("Select an SAE")
 
     layers = sorted(available_saes_df["layer"].unique())
-    selected_layer = st.sidebar.selectbox("Select Layer", layers)
+    selected_layer = st.sidebar.selectbox("Select Layer", layers, key="layer")
 
     sae_widths = sorted(available_saes_df["sae_width"].unique())
-    selected_sae_width = st.sidebar.selectbox("Select SAE Width", sae_widths)
+    selected_sae_width = st.sidebar.selectbox(
+        "Select SAE Width", sae_widths, key="sae_width"
+    )
 
     filtered_df = available_saes_df[
         (available_saes_df["layer"] == selected_layer)
         & (available_saes_df["sae_width"] == selected_sae_width)
     ]
 
-    # sae_l0s = sorted(filtered_df["sae_l0"].unique())
-    # selected_sae_l0 = st.sidebar.selectbox("Select SAE L0", sae_l0s)
     selected_sae_l0 = layer_l0_dict[selected_sae_width][selected_layer]
 
     available_letters = filtered_df[filtered_df["sae_l0"] == selected_sae_l0][
         "letter"
     ].unique()
-    selected_letter = st.sidebar.selectbox("Select Letter", available_letters)
+
+    # Check if the previously selected letter is still available
+    if (
+        "selected_letter" in st.session_state
+        and st.session_state.selected_letter in available_letters
+    ):
+        default_letter_index = list(available_letters).index(
+            st.session_state.selected_letter
+        )
+    else:
+        default_letter_index = 0
+
+    selected_letter = st.sidebar.selectbox(
+        "Select Letter", available_letters, index=default_letter_index, key="letter"
+    )
+
+    # Store the selected letter in session state
+    st.session_state.selected_letter = selected_letter
 
     final_df = filtered_df[
         (filtered_df["sae_l0"] == selected_sae_l0)
@@ -105,23 +122,31 @@ def main():
                             st.session_state.clicked_feat = feat
                             st.session_state.clicked_letter = row["letter"]
 
-                        # for feat in split_feats:
-                        #     st.button(feat, key=f"{row['letter']}_{feat}")
-                    # if st.button(feat, key=f"{row['letter']}_{feat}"):
-                    #     st.session_state.clicked_feat = feat
-
     sae_link_part = f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
 
-    # Display information about clicked feature
-    if "clicked_feat" in st.session_state:
-        st.subheader(
-            f"Split Feature {st.session_state.clicked_feat} for letter {st.session_state.clicked_letter}:"
-        )
+    selected_letter_feats = result_df[result_df["letter"] == selected_letter][
+        "split_feats"
+    ].iloc[0]
 
-        iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{st.session_state.clicked_feat}?embed=true"
+    # Reset clicked_feat if the letter has changed
+    if (
+        "clicked_letter" not in st.session_state
+        or st.session_state.clicked_letter != selected_letter
+    ):
+        st.session_state.clicked_feat = None
 
-        # Display the iframe
-        st.components.v1.iframe(iframe_url, width=800, height=600, scrolling=True)
+    # Display the default (top) feature or the clicked feature
+    if st.session_state.get("clicked_feat"):
+        feature_to_show = st.session_state.clicked_feat
+    else:
+        feature_to_show = selected_letter_feats[0]
+
+    st.subheader(f"Split Feature {feature_to_show} for letter {selected_letter}:")
+
+    iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature_to_show}?embed=true"
+
+    # Display the iframe
+    st.components.v1.iframe(iframe_url, width=800, height=600, scrolling=True)
 
     st.subheader("Absorbed Features")
 
