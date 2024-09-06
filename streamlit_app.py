@@ -190,7 +190,7 @@ def main():
     for feature, tokens in feature_unique_tokens.items():
         with st.expander(f"Feature: {feature}"):
             st.markdown("<div class='scrollable-content'>", unsafe_allow_html=True)
-            st.write("Tokens:")
+            st.write("Absorbing First Letter On These Tokens:")
             st.write(", ".join(tokens))
 
             iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
