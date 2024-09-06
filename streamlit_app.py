@@ -118,7 +118,7 @@ def main():
         unique_tokens = list(set(tokens))  # Remove duplicates
         feature_unique_tokens[feature] = unique_tokens
 
-    with st.expander("View more detailed absorption data"):
+    with st.expander("View the raw absorption data"):
         st.write(sae_data_only_absorptions)
 
     sae_link_part = f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
