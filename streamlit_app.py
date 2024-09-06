@@ -182,7 +182,7 @@ def main():
         # Display the iframe using custom HTML with st.components.v1.html()
         st.components.v1.html(
             f"""
-        <div style="position: relative; padding-bottom: 75%; height: 0; overflow: hidden;">
+        <div style="position: relative; height: 100vh; overflow: hidden;">
             <iframe src="{iframe_url}" 
                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
                     frameborder="0" 
@@ -190,7 +190,7 @@ def main():
             </iframe>
         </div>
         """,
-            height=1000,
+            height=800,  # This sets a default height, but the iframe will expand to fill the viewport
             scrolling=True,
         )
 
@@ -225,7 +225,7 @@ def main():
                     iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
                     st.components.v1.html(
                         f"""
-                    <div style="position: relative; padding-bottom: 75%; height: 0; overflow: hidden;">
+                    <div style="position: relative; height: 100vh; overflow: hidden;">
                         <iframe src="{iframe_url}" 
                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
                                 frameborder="0" 
@@ -233,7 +233,7 @@ def main():
                         </iframe>
                     </div>
                     """,
-                        height=1000,
+                        height=800,  # This sets a default height, but the iframe will expand to fill the viewport
                         scrolling=True,
                     )
 
