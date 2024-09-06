@@ -178,15 +178,17 @@ def main():
         st.subheader(f"Split Feature {feature_to_show} for letter {selected_letter}:")
 
         other_main_feats = [
-            feat for feat in selected_letter_feats if feat != feature_to_show
+            str(feat) for feat in selected_letter_feats if feat != feature_to_show
         ]
 
         other_main_feats_str = (
-            f" ({', '.join(other_main_feats)})" if len(other_main_feats) > 0 else ""
+            f" and the other main split features ({', '.join(other_main_feats)})"
+            if len(other_main_feats) > 0
+            else ""
         )
 
         st.write(
-            f"This feature and the other main split features{other_main_feats_str} should be the primary 'first letter is {selected_letter}' features.",
+            f"This feature{other_main_feats_str} should be the primary 'first letter is {selected_letter}' feature.",
             f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
         )
 
