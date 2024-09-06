@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 
+st.set_page_config(layout="wide")
+
 
 @st.cache_data
 def load_available_sae_l0s():
@@ -34,16 +36,20 @@ def main():
 
     available_saes_df = load_available_sae_l0s()
 
-    # Create dropdowns for filtering
-    st.sidebar.header("Select an SAE")
+    # Create dropdowns for filtering at the top
+    st.subheader("Select an SAE and the first letter to explore")
 
-    layers = sorted(available_saes_df["layer"].unique())
-    selected_layer = st.sidebar.selectbox("Select Layer", layers, key="layer")
+    col1, col2, col3 = st.columns(3)
 
-    sae_widths = sorted(available_saes_df["sae_width"].unique())
-    selected_sae_width = st.sidebar.selectbox(
-        "Select SAE Width", sae_widths, key="sae_width"
-    )
+    with col1:
+        layers = sorted(available_saes_df["layer"].unique())
+        selected_layer = st.selectbox("Select Layer", layers, key="layer")
+
+    with col2:
+        sae_widths = sorted(available_saes_df["sae_width"].unique())
+        selected_sae_width = st.selectbox(
+            "Select SAE Width", sae_widths, key="sae_width"
+        )
 
     filtered_df = available_saes_df[
         (available_saes_df["layer"] == selected_layer)
@@ -67,9 +73,10 @@ def main():
     else:
         default_letter_index = 0
 
-    selected_letter = st.sidebar.selectbox(
-        "Select Letter", available_letters, index=default_letter_index, key="letter"
-    )
+    with col3:
+        selected_letter = st.selectbox(
+            "Select Letter", available_letters, index=default_letter_index, key="letter"
+        )
 
     # Store the selected letter in session state
     st.session_state.selected_letter = selected_letter
@@ -122,34 +129,6 @@ def main():
                             st.session_state.clicked_feat = feat
                             st.session_state.clicked_letter = row["letter"]
 
-    sae_link_part = f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
-
-    selected_letter_feats = result_df[result_df["letter"] == selected_letter][
-        "split_feats"
-    ].iloc[0]
-
-    # Reset clicked_feat if the letter has changed
-    if (
-        "clicked_letter" not in st.session_state
-        or st.session_state.clicked_letter != selected_letter
-    ):
-        st.session_state.clicked_feat = None
-
-    # Display the default (top) feature or the clicked feature
-    if st.session_state.get("clicked_feat"):
-        feature_to_show = st.session_state.clicked_feat
-    else:
-        feature_to_show = selected_letter_feats[0]
-
-    st.subheader(f"Split Feature {feature_to_show} for letter {selected_letter}:")
-
-    iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature_to_show}?embed=true"
-
-    # Display the iframe
-    st.components.v1.iframe(iframe_url, width=800, height=600, scrolling=True)
-
-    st.subheader("Absorbing Features")
-
     sae_data = load_sae_data(
         selected_sae_l0, selected_sae_width, selected_layer, selected_letter
     )
@@ -172,31 +151,79 @@ def main():
         unique_tokens = list(set(tokens))  # Remove duplicates
         feature_unique_tokens[feature] = unique_tokens
 
-    # CSS for scrollable content
-    st.markdown(
-        """
-    <style>
-    .scrollable-content {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ccc;
-        padding: 10px;
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
-
-    for feature, tokens in feature_unique_tokens.items():
-        with st.expander(f"Feature: {feature}"):
-            st.markdown("<div class='scrollable-content'>", unsafe_allow_html=True)
-            st.write(f"Absorbing first letter on tokens: {', '.join(tokens)}")
-
-            iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
-            st.components.v1.iframe(iframe_url, width=600, height=300, scrolling=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
     st.write(sae_data_only_absorptions)
+
+    sae_link_part = f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
+
+    selected_letter_feats = result_df[result_df["letter"] == selected_letter][
+        "split_feats"
+    ].iloc[0]
+
+    # Reset clicked_feat if the letter has changed
+    if (
+        "clicked_letter" not in st.session_state
+        or st.session_state.clicked_letter != selected_letter
+    ):
+        st.session_state.clicked_feat = None
+
+    if st.session_state.get("clicked_feat"):
+        feature_to_show = st.session_state.clicked_feat
+    else:
+        feature_to_show = selected_letter_feats[0]
+
+    # Create two columns for the main content
+    left_column, right_column = st.columns(2)
+
+    with left_column:
+        st.subheader(f"Split Feature {feature_to_show} for letter {selected_letter}:")
+
+        iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature_to_show}?embed=true"
+
+        # Display the iframe using custom HTML with st.components.v1.html()
+        st.components.v1.html(
+            f"""
+        <div style="position: relative; padding-bottom: 75%; height: 0; overflow: hidden;">
+            <iframe src="{iframe_url}" 
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                    frameborder="0" 
+                    scrolling="yes">
+            </iframe>
+        </div>
+        """,
+            height=450,
+            scrolling=True,
+        )
+
+    with right_column:
+        all_unique_tokens = set()
+        for tokens in feature_unique_tokens.values():
+            all_unique_tokens.update(tokens)
+
+        all_unique_tokens = ", ".join(list(all_unique_tokens))
+
+        st.subheader("Absorbing Features")
+
+        st.write("All tokens showing absorption (for copying):")
+        # Use st.code to display the tokens in a copyable format
+        st.code(all_unique_tokens)
+
+        # Rest of the code for displaying absorbing features
+        for feature, tokens in feature_unique_tokens.items():
+            with st.expander(f"Feature: {feature}. Tokens: {', '.join(tokens)}"):
+                iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
+                st.components.v1.html(
+                    f"""
+                <div style="position: relative; padding-bottom: 75%; height: 0; overflow: hidden;">
+                    <iframe src="{iframe_url}" 
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                            frameborder="0" 
+                            scrolling="yes">
+                    </iframe>
+                </div>
+                """,
+                    height=300,
+                    scrolling=True,
+                )
 
 
 if __name__ == "__main__":
