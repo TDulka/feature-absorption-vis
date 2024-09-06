@@ -80,7 +80,7 @@ def main():
     ]
 
     st.subheader(
-        f"Split Features for Layer {selected_layer}, SAE Width {selected_sae_width}, SAE L0 {selected_sae_l0}"
+        f"Main First Letter Features for Layer {selected_layer}, SAE Width {selected_sae_width}, SAE L0 {selected_sae_l0}"
     )
 
     result_df = (
@@ -148,7 +148,7 @@ def main():
     # Display the iframe
     st.components.v1.iframe(iframe_url, width=800, height=600, scrolling=True)
 
-    st.subheader("Absorbed Features")
+    st.subheader("Absorbing Features")
 
     sae_data = load_sae_data(
         selected_sae_l0, selected_sae_width, selected_layer, selected_letter
