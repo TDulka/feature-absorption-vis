@@ -182,11 +182,11 @@ def main():
         ]
 
         other_main_feats_str = (
-            ", ".join(other_main_feats) if len(other_main_feats) > 0 else ""
+            f" ({', '.join(other_main_feats)})" if len(other_main_feats) > 0 else ""
         )
 
         st.write(
-            f"This feature and the other main split features ({other_main_feats_str}) should be the primary 'first letter is {selected_letter}' features.",
+            f"This feature and the other main split features{other_main_feats_str} should be the primary 'first letter is {selected_letter}' features.",
             f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
         )
 
