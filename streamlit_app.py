@@ -177,6 +177,19 @@ def main():
     with left_column:
         st.subheader(f"Split Feature {feature_to_show} for letter {selected_letter}:")
 
+        other_main_feats = [
+            feat for feat in selected_letter_feats if feat != feature_to_show
+        ]
+
+        other_main_feats_str = (
+            ", ".join(other_main_feats) if len(other_main_feats) > 0 else ""
+        )
+
+        st.write(
+            f"This feature and the other main split features ({other_main_feats_str}) should be the primary 'first letter is {selected_letter}' features.",
+            f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
+        )
+
         iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature_to_show}?embed=true"
 
         # Display the iframe using custom HTML with st.components.v1.html()
@@ -204,10 +217,14 @@ def main():
             for tokens in feature_unique_tokens.values():
                 all_unique_tokens.update(tokens)
 
-            all_unique_tokens = ", ".join(list(all_unique_tokens))
+            all_unique_tokens = ",".join(list(all_unique_tokens))
 
             st.write("All tokens showing absorption (for copying):")
             st.code(all_unique_tokens)
+
+            st.write(
+                "Try copying the tokens showing absorption and test their activations. Watch out for tokenization."
+            )
 
             # Create tabs for absorbing features
             feature_tabs = st.tabs(
