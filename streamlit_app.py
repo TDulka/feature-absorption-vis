@@ -190,41 +190,55 @@ def main():
             </iframe>
         </div>
         """,
-            height=450,
+            height=1000,
             scrolling=True,
         )
 
     with right_column:
-        all_unique_tokens = set()
-        for tokens in feature_unique_tokens.values():
-            all_unique_tokens.update(tokens)
-
-        all_unique_tokens = ", ".join(list(all_unique_tokens))
-
         st.subheader("Absorbing Features")
 
-        st.write("All tokens showing absorption (for copying):")
-        # Use st.code to display the tokens in a copyable format
-        st.code(all_unique_tokens)
+        if not feature_unique_tokens:
+            st.write("No absorbing features found for this selection.")
+        else:
+            all_unique_tokens = set()
+            for tokens in feature_unique_tokens.values():
+                all_unique_tokens.update(tokens)
 
-        # Rest of the code for displaying absorbing features
-        for feature, tokens in feature_unique_tokens.items():
-            with st.expander(f"Feature: {feature}. Tokens: {', '.join(tokens)}"):
-                iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
-                st.components.v1.html(
-                    f"""
-                <div style="position: relative; padding-bottom: 75%; height: 0; overflow: hidden;">
-                    <iframe src="{iframe_url}" 
-                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                            frameborder="0" 
-                            scrolling="yes">
-                    </iframe>
-                </div>
-                """,
-                    height=300,
-                    scrolling=True,
-                )
+            all_unique_tokens = ", ".join(list(all_unique_tokens))
 
+            st.write("All tokens showing absorption (for copying):")
+            st.code(all_unique_tokens)
+
+            # Create tabs for absorbing features
+            feature_tabs = st.tabs(
+                [
+                    f"Feature: {feature} ({', '.join(tokens)})"
+                    for feature, tokens in feature_unique_tokens.items()
+                ]
+            )
+
+            for tab, (feature, tokens) in zip(
+                feature_tabs, feature_unique_tokens.items()
+            ):
+                with tab:
+                    st.write(f"Tokens: {', '.join(tokens)}")
+                    iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
+                    st.components.v1.html(
+                        f"""
+                    <div style="position: relative; padding-bottom: 75%; height: 0; overflow: hidden;">
+                        <iframe src="{iframe_url}" 
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                                frameborder="0" 
+                                scrolling="yes">
+                        </iframe>
+                    </div>
+                    """,
+                        height=1000,
+                        scrolling=True,
+                    )
+
+
+# ... rest of the code ...
 
 if __name__ == "__main__":
     main()
