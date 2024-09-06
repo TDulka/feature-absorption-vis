@@ -172,13 +172,30 @@ def main():
         unique_tokens = list(set(tokens))  # Remove duplicates
         feature_unique_tokens[feature] = unique_tokens
 
+    # CSS for scrollable content
+    st.markdown(
+        """
+    <style>
+    .scrollable-content {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+    }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
     for feature, tokens in feature_unique_tokens.items():
         with st.expander(f"Feature: {feature}"):
+            st.markdown("<div class='scrollable-content'>", unsafe_allow_html=True)
             st.write("Tokens:")
             st.write(", ".join(tokens))
 
             iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
             st.components.v1.iframe(iframe_url, width=600, height=300, scrolling=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     st.write(sae_data_only_absorptions)
 
