@@ -36,20 +36,16 @@ def main():
 
     available_saes_df = load_available_sae_l0s()
 
-    # Create dropdowns for filtering at the top
-    st.subheader("Select an SAE and the first letter to explore")
+    # Move selectors to the sidebar
+    st.sidebar.subheader("Select an SAE and the first letter to explore")
 
-    col1, col2, col3 = st.columns(3)
+    layers = sorted(available_saes_df["layer"].unique())
+    selected_layer = st.sidebar.selectbox("Select Layer", layers, key="layer")
 
-    with col1:
-        layers = sorted(available_saes_df["layer"].unique())
-        selected_layer = st.selectbox("Select Layer", layers, key="layer")
-
-    with col2:
-        sae_widths = sorted(available_saes_df["sae_width"].unique())
-        selected_sae_width = st.selectbox(
-            "Select SAE Width", sae_widths, key="sae_width"
-        )
+    sae_widths = sorted(available_saes_df["sae_width"].unique())
+    selected_sae_width = st.sidebar.selectbox(
+        "Select SAE Width", sae_widths, key="sae_width"
+    )
 
     filtered_df = available_saes_df[
         (available_saes_df["layer"] == selected_layer)
@@ -73,10 +69,9 @@ def main():
     else:
         default_letter_index = 0
 
-    with col3:
-        selected_letter = st.selectbox(
-            "Select Letter", available_letters, index=default_letter_index, key="letter"
-        )
+    selected_letter = st.sidebar.selectbox(
+        "Select Letter", available_letters, index=default_letter_index, key="letter"
+    )
 
     # Store the selected letter in session state
     st.session_state.selected_letter = selected_letter
@@ -87,7 +82,7 @@ def main():
     ]
 
     st.subheader(
-        f"Main First Letter Features for Layer {selected_layer}, SAE Width {selected_sae_width}, SAE L0 {selected_sae_l0}"
+        f"First Letter Features for Layer {selected_layer}, SAE Width {selected_sae_width}, SAE L0 {selected_sae_l0}"
     )
 
     result_df = (
@@ -100,34 +95,6 @@ def main():
         )
         .reset_index()
     )
-
-    # Prepare headers for the streamlit table
-    headers = ["Letter", "Num True Positives"] + [f"Feature {i}" for i in range(1, 6)]
-
-    # Add column headers
-    n_top_feats = len(result_df["split_feats"].iloc[0])
-    cols = st.columns(n_top_feats + 2)
-    for i, col in enumerate(cols):
-        with col:
-            st.write(headers[i])
-
-    for _, row in result_df.iterrows():
-        cols = st.columns(n_top_feats + 2)
-
-        split_feats = str(row["split_feats"]).strip("[]").split()
-
-        for i, col in enumerate(cols):
-            with col:
-                if i == 0:
-                    st.write(row["letter"])
-                elif i == 1:
-                    st.write(row["num_true_positives"])
-                else:
-                    if i <= len(split_feats) + 1:
-                        feat = split_feats[i - 2]
-                        if st.button(feat, key=f"{row['letter']}_{feat}"):
-                            st.session_state.clicked_feat = feat
-                            st.session_state.clicked_letter = row["letter"]
 
     sae_data = load_sae_data(
         selected_sae_l0, selected_sae_width, selected_layer, selected_letter
@@ -151,7 +118,8 @@ def main():
         unique_tokens = list(set(tokens))  # Remove duplicates
         feature_unique_tokens[feature] = unique_tokens
 
-    st.write(sae_data_only_absorptions)
+    with st.expander("View more detailed absorption data"):
+        st.write(sae_data_only_absorptions)
 
     sae_link_part = f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
 
@@ -159,56 +127,20 @@ def main():
         "split_feats"
     ].iloc[0]
 
-    # Reset clicked_feat if the letter has changed
-    if (
-        "clicked_letter" not in st.session_state
-        or st.session_state.clicked_letter != selected_letter
-    ):
-        st.session_state.clicked_feat = None
-
-    if st.session_state.get("clicked_feat"):
-        feature_to_show = st.session_state.clicked_feat
-    else:
-        feature_to_show = selected_letter_feats[0]
-
-    # Create two columns for the main content
     left_column, right_column = st.columns(2)
 
     with left_column:
-        st.subheader(f"Split Feature {feature_to_show} for letter {selected_letter}:")
+        st.subheader(f"Split features for letter {selected_letter}:")
 
-        other_main_feats = [
-            str(feat) for feat in selected_letter_feats if feat != feature_to_show
-        ]
+        feats_str = ", ".join([str(feat) for feat in selected_letter_feats])
 
-        other_main_feats_str = (
-            f" and the other main split features ({', '.join(other_main_feats)})"
-            if len(other_main_feats) > 0
-            else ""
-        )
+        feature_str = "feature" if len(selected_letter_feats) == 1 else "features"
 
         st.write(
-            f"This feature{other_main_feats_str} should be the primary 'first letter is {selected_letter}' feature.",
+            f"The {feature_str} {feats_str} should be the primary 'first letter is {selected_letter}' {feature_str}.",
             f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
             f"\n\nTry finding words that start with {selected_letter} that don't activate the feature.",
             "You can compare them with the tokens we have discovered in the right column.",
-        )
-
-        iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature_to_show}?embed=true"
-
-        # Display the iframe using custom HTML with st.components.v1.html()
-        st.components.v1.html(
-            f"""
-        <div style="position: relative; height: 100vh; overflow: hidden;">
-            <iframe src="{iframe_url}" 
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                    frameborder="0" 
-                    scrolling="yes">
-            </iframe>
-        </div>
-        """,
-            height=800,  # This sets a default height, but the iframe will expand to fill the viewport
-            scrolling=True,
         )
 
     with right_column:
@@ -231,33 +163,60 @@ def main():
             st.write("All tokens showing absorption (for copying):")
             st.code(all_unique_tokens)
 
-            # Create tabs for absorbing features
-            feature_tabs = st.tabs(
-                [
-                    f"Feature: {feature} ({', '.join(tokens)})"
-                    for feature, tokens in feature_unique_tokens.items()
-                ]
-            )
+    left_column_iframe, right_column_iframe = st.columns(2)
 
-            for tab, (feature, tokens) in zip(
-                feature_tabs, feature_unique_tokens.items()
-            ):
-                with tab:
-                    st.code(f"{','.join(tokens)}")
-                    iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
-                    st.components.v1.html(
-                        f"""
+    with left_column_iframe:
+        feature_tabs = st.tabs(
+            [f"Feature: {feature}" for feature in selected_letter_feats]
+        )
+
+        for tab, feature in zip(feature_tabs, selected_letter_feats):
+            with tab:
+                st.write("Tokens:")
+                st.code(f"Should activate on most '{selected_letter}' tokens")
+                iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
+                # Display the iframe using custom HTML with st.components.v1.html()
+                st.components.v1.html(
+                    f"""
                     <div style="position: relative; height: 100vh; overflow: hidden;">
                         <iframe src="{iframe_url}" 
-                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                                frameborder="0" 
-                                scrolling="yes">
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                        frameborder="0" 
+                        scrolling="yes">
+                           </iframe>
+                    </div>
+        """,
+                    height=800,  # This sets a default height, but the iframe will expand to fill the viewport
+                    scrolling=True,
+                )
+
+    with right_column_iframe:
+        # Create tabs for absorbing features
+        feature_tabs = st.tabs(
+            [
+                f"Feature: {feature} ({', '.join(tokens)})"
+                for feature, tokens in feature_unique_tokens.items()
+            ]
+        )
+
+        for tab, (feature, tokens) in zip(feature_tabs, feature_unique_tokens.items()):
+            with tab:
+                st.write("Tokens:")
+                st.code(f"{','.join(tokens)}")
+                iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
+                st.components.v1.html(
+                    f"""
+                    <div style="position: relative; height: 100vh; overflow: hidden;">
+                        <iframe src="{iframe_url}" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                        frameborder="0" 
+                        scrolling="yes">
                         </iframe>
                     </div>
                     """,
-                        height=800,  # This sets a default height, but the iframe will expand to fill the viewport
-                        scrolling=True,
-                    )
+                    height=800,  # This sets a default height, but the iframe will expand to fill the viewport
+                    scrolling=True,
+                )
 
 
 # ... rest of the code ...
