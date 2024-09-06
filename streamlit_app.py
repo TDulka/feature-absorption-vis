@@ -190,6 +190,8 @@ def main():
         st.write(
             f"This feature{other_main_feats_str} should be the primary 'first letter is {selected_letter}' feature.",
             f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
+            f"\n\nTry finding words that start with {selected_letter} that don't activate the feature.",
+            "You can compare them with the tokens we have discovered in the right column.",
         )
 
         iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature_to_show}?embed=true"
@@ -221,12 +223,13 @@ def main():
 
             all_unique_tokens = ",".join(list(all_unique_tokens))
 
+            st.write(
+                f"We have discovered that some features capture the 'first letter is {selected_letter}' signal on specific tokens. "
+                "Try copying the tokens showing absorption and test their activations on the main feature and compare with the absorbing features."
+            )
+
             st.write("All tokens showing absorption (for copying):")
             st.code(all_unique_tokens)
-
-            st.write(
-                "Try copying the tokens showing absorption and test their activations. Watch out for tokenization."
-            )
 
             # Create tabs for absorbing features
             feature_tabs = st.tabs(
@@ -240,7 +243,7 @@ def main():
                 feature_tabs, feature_unique_tokens.items()
             ):
                 with tab:
-                    st.write(f"Tokens: {', '.join(tokens)}")
+                    st.code(f"{','.join(tokens)}")
                     iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
                     st.components.v1.html(
                         f"""
