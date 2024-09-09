@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 
 st.set_page_config(layout="wide")
 
@@ -22,6 +23,40 @@ def load_sae_data(sae_l0, sae_width, layer, letter):
         & (df["layer"] == layer)
         & (df["letter"] == letter)
     ]
+
+def is_canonical_sae(sae_width, layer, sae_l0):
+    return (
+        sae_width in layer_l0_dict
+        and layer in layer_l0_dict[sae_width]
+        and layer_l0_dict[sae_width][layer] == sae_l0
+    )
+
+def get_dashboard_url_or_path(sae_width, layer, sae_l0, feature):
+    if is_canonical_sae(sae_width, layer, sae_l0):
+        sae_link_part = f"{layer}-gemmascope-res-{sae_width // 1000}k"
+        return f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
+    else:
+        return os.path.join(
+            "data",
+            "non_canonical_dashboards",
+            f"layer_{layer}",
+            f"width_{sae_width // 1000}k",
+            f"average_l0_{sae_l0}_feature_{feature}.html"
+        )
+    
+def display_dashboard(sae_width, layer, sae_l0, feature):
+    dashboard_url_or_path = get_dashboard_url_or_path(sae_width, layer, sae_l0, feature)
+    
+    if is_canonical_sae(sae_width, layer, sae_l0):
+        st.components.v1.iframe(dashboard_url_or_path, height=800, scrolling=True)
+    else:
+        try:
+            with open(dashboard_url_or_path, 'r') as file:
+                dashboard_html = file.read()
+            st.components.v1.html(dashboard_html, height=800, scrolling=True)
+        except FileNotFoundError:
+            st.error(f"Dashboard for feature {feature} not found. This may be due to the file being missing.")
+
 
 
 layer_l0_dict = {
@@ -50,8 +85,17 @@ def main():
         (available_saes_df["layer"] == selected_layer)
         & (available_saes_df["sae_width"] == selected_sae_width)
     ]
+    available_l0s = sorted(filtered_df["sae_l0"].unique())
 
-    selected_sae_l0 = layer_l0_dict[selected_sae_width][selected_layer]
+    # Add dropdown for L0 selection
+    selected_sae_l0 = st.sidebar.selectbox("Select SAE L0", available_l0s, key="sae_l0")
+
+    # Highlight if the selected SAE is canonical
+    is_canonical = is_canonical_sae(selected_sae_width, selected_layer, selected_sae_l0)
+    if is_canonical:
+        st.sidebar.success("Selected SAE is canonical (on Neuronpedia)")
+    else:
+        st.sidebar.info("Selected SAE is non-canonical (not on Neuronpedia)")
 
     available_letters = filtered_df[filtered_df["sae_l0"] == selected_sae_l0][
         "letter"
@@ -120,8 +164,6 @@ def main():
     with st.expander("View the raw absorption data"):
         st.write(sae_data_only_absorptions)
 
-    sae_link_part = f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
-
     selected_letter_feats = result_df[result_df["letter"] == selected_letter][
         "split_feats"
     ].iloc[0]
@@ -173,24 +215,9 @@ def main():
             with tab:
                 st.write("Tokens:")
                 st.code(f"Should activate on most '{selected_letter}' tokens")
-                iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
-                # Display the iframe using custom HTML with st.components.v1.html()
-                st.components.v1.html(
-                    f"""
-                    <div style="position: relative; height: 100vh; overflow: hidden;">
-                        <iframe src="{iframe_url}" 
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                        frameborder="0" 
-                        scrolling="yes">
-                           </iframe>
-                    </div>
-        """,
-                    height=800,  # This sets a default height, but the iframe will expand to fill the viewport
-                    scrolling=True,
-                )
+                display_dashboard(selected_sae_width, selected_layer, selected_sae_l0, feature)
 
     with right_column_iframe:
-        # Create tabs for absorbing features
         feature_tabs = st.tabs(
             [
                 f"Feature: {feature} ({', '.join(tokens)})"
@@ -202,23 +229,9 @@ def main():
             with tab:
                 st.write("Tokens:")
                 st.code(f"{','.join(tokens)}")
-                iframe_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
-                st.components.v1.html(
-                    f"""
-                    <div style="position: relative; height: 100vh; overflow: hidden;">
-                        <iframe src="{iframe_url}" 
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                        frameborder="0" 
-                        scrolling="yes">
-                        </iframe>
-                    </div>
-                    """,
-                    height=800,  # This sets a default height, but the iframe will expand to fill the viewport
-                    scrolling=True,
-                )
+                display_dashboard(selected_sae_width, selected_layer, selected_sae_l0, feature)
 
-
-# ... rest of the code ...
+    
 
 if __name__ == "__main__":
     main()
