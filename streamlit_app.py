@@ -13,7 +13,6 @@ def load_available_sae_l0s():
 def load_full_data():
     return pd.read_parquet("data/feature_absorption_results.parquet")
 
-
 @st.cache_data
 def load_sae_data(sae_l0, sae_width, layer, letter):
     df = load_full_data()
