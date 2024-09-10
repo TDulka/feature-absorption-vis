@@ -16,13 +16,14 @@ def load_full_data():
     return pd.read_parquet("data/feature_absorption_results.parquet")
 
 @st.cache_data
-def load_sae_data(sae_l0, sae_width, layer, letter):
+def load_sae_absorption_data(sae_l0, sae_width, layer):
     df = load_full_data()
     return df[
         (df["sae_l0"] == sae_l0)
         & (df["sae_width"] == sae_width)
         & (df["layer"] == layer)
-        & (df["letter"] == letter)
+        & (df["feat_order"] == 0)
+        & (df["is_absorption"])
     ]
 
 @st.cache_data
@@ -155,6 +156,23 @@ def main():
         "letter"
     ].unique()
 
+    # Count absorbing features for each letter
+    absorption_data = load_sae_absorption_data(
+        selected_sae_l0, selected_sae_width, selected_layer
+    )
+    letter_absorbing_features = {}
+    for letter in available_letters:
+        absorbing_features = absorption_data[(absorption_data["letter"] == letter)][
+            "ablation_feat"
+        ].nunique()
+        letter_absorbing_features[letter] = absorbing_features
+
+    # Create letter options with absorbing feature counts
+    letter_options = [
+        f"{letter} ({letter_absorbing_features[letter]})"
+        for letter in available_letters
+    ]
+
     # Check if the previously selected letter is still available
     if (
         "selected_letter" in st.session_state
@@ -166,9 +184,15 @@ def main():
     else:
         default_letter_index = 0
 
-    selected_letter = st.sidebar.selectbox(
-        "Select Letter", available_letters, index=default_letter_index, key="letter"
+    selected_letter_option = st.sidebar.selectbox(
+        "Select Letter (count of available absorbing features in parentheses)",
+        letter_options,
+        index=default_letter_index,
+        key="letter",
     )
+
+    # Extract the letter from the selected option
+    selected_letter = selected_letter_option.split()[0]
 
     # Store the selected letter in session state
     st.session_state.selected_letter = selected_letter
@@ -193,18 +217,10 @@ def main():
         .reset_index()
     )
 
-    sae_data = load_sae_data(
-        selected_sae_l0, selected_sae_width, selected_layer, selected_letter
-    )
-
-    sae_data_only_absorptions = sae_data[
-        (sae_data["feat_order"] == 0) & (sae_data["is_absorption"])
-    ]
+    letter_absorptions = absorption_data[absorption_data["letter"] == selected_letter]
 
     feature_tokens = (
-        sae_data_only_absorptions.groupby("ablation_feat")["token"]
-        .apply(list)
-        .reset_index()
+        letter_absorptions.groupby("ablation_feat")["token"].apply(list).reset_index()
     )
 
     feature_unique_tokens = {}
@@ -216,7 +232,7 @@ def main():
         feature_unique_tokens[feature] = unique_tokens
 
     with st.expander("View the raw absorption data"):
-        st.write(sae_data_only_absorptions)
+        st.write(letter_absorptions)
 
     selected_letter_feats = result_df[result_df["letter"] == selected_letter][
         "split_feats"
