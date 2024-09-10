@@ -117,6 +117,9 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
                 margin: 0;
                 padding: 0 20px;
             }
+            #column-0 {
+                display: none;
+            }
             """
 
             # Insert the CSS modification just before the closing </style> tag
