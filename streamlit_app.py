@@ -195,7 +195,7 @@ def plot_sae_probe_cosine_similarities(similarities, split_features, ablation_fe
         )
     )
 
-    # Highlight ablation features in red
+    # Highlight absorbing features in red
     ablation_x = [i for i in range(len(similarities)) if i in ablation_features]
     ablation_y = [similarities[i] for i in ablation_x]
     fig.add_trace(
@@ -204,7 +204,7 @@ def plot_sae_probe_cosine_similarities(similarities, split_features, ablation_fe
             y=ablation_y,
             mode="markers",
             marker=dict(color="red", size=8),
-            name="Ablation Features",
+            name="Absorbing Features",
         )
     )
 
@@ -361,28 +361,32 @@ def main():
 
     st.subheader("Linear Probe & SAE Cosine Similarities")
 
-    probe_stats = get_probe_stats(selected_layer, selected_letter)
-    if not probe_stats.empty:
-        precision = probe_stats["precision"].iloc[0]
-        recall = probe_stats["recall"].iloc[0]
-        f1 = probe_stats["f1"].iloc[0]
+    # Add a checkbox to toggle the Linear Probe section visibility
+    show_linear_probe = st.checkbox("Show Linear Probe Statistics", value=True)
 
-        st.write(
-            f"Linear probe performance for predicting first letter '{selected_letter}' (ignoring case) at layer {selected_layer}:"
-        )
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Precision", f"{precision:.3f}")
-        col2.metric("Recall", f"{recall:.3f}")
-        col3.metric("F1 Score", f"{f1:.3f}")
-    else:
-        st.write(
-            f"No probe statistics available for letter '{selected_letter}' at layer {selected_layer}."
-        )
+    if show_linear_probe:
+        probe_stats = get_probe_stats(selected_layer, selected_letter)
+        if not probe_stats.empty:
+            precision = probe_stats["precision"].iloc[0]
+            recall = probe_stats["recall"].iloc[0]
+            f1 = probe_stats["f1"].iloc[0]
 
-    fig = plot_sae_probe_cosine_similarities(
-        sae_probe_cosine_similarities, split_features, ablation_features
-    )
-    st.plotly_chart(fig, use_container_width=True)
+            st.write(
+                f"Linear probe performance for predicting first letter '{selected_letter}' (ignoring case) at layer {selected_layer}:"
+            )
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Precision", f"{precision:.3f}")
+            col2.metric("Recall", f"{recall:.3f}")
+            col3.metric("F1 Score", f"{f1:.3f}")
+        else:
+            st.write(
+                f"No probe statistics available for letter '{selected_letter}' at layer {selected_layer}."
+            )
+
+        fig = plot_sae_probe_cosine_similarities(
+            sae_probe_cosine_similarities, split_features, ablation_features
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     selected_letter_feats = result_df[result_df["letter"] == selected_letter][
         "split_feats"
@@ -391,7 +395,7 @@ def main():
     left_column, right_column = st.columns(2)
 
     with left_column:
-        st.subheader(f"Split features for letter {selected_letter}:")
+        st.subheader(f"Split features for letter {selected_letter}")
 
         feats_str = ", ".join([str(feat) for feat in selected_letter_feats])
 
