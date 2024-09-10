@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import os
 import random
+import numpy as np
+import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
-
 
 @st.cache_data
 def load_available_sae_l0s():
@@ -41,6 +42,29 @@ def get_random_non_letter_tokens(letter, n=30):
     letter_tokens = tokens[tokens["letter"] != letter]["token"].tolist()
     return random.sample(letter_tokens, n)
 
+@st.cache_data
+def get_sae_probe_cosine_similarities(sae_width, layer, sae_l0, letter):
+    path = os.path.join(
+        "data",
+        "probe_sae_cos_sims",
+        f"layer_{layer}",
+        f"width_{sae_width}",
+        f"l0_{sae_l0}",
+        f"letter_{letter}.npz",
+    )
+    return np.load(path)["arr_0"].tolist()
+
+
+@st.cache_data
+def load_probe_stats():
+    return pd.read_parquet("data/probe_stats_across_layers.parquet")
+
+
+def get_probe_stats(layer, letter):
+    probe_stats = load_probe_stats()
+    return probe_stats[
+        (probe_stats["layer"] == layer) & (probe_stats["letter"] == letter)
+    ]
 
 def is_canonical_sae(sae_width, layer, sae_l0):
     canonical_layer_l0_dict = {
@@ -143,6 +167,55 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
         except FileNotFoundError:
             st.error(f"Dashboard for feature {feature} not found. This may be due to the file being missing.")
 
+
+
+def plot_sae_probe_cosine_similarities(similarities, split_features, ablation_features):
+    fig = go.Figure()
+
+    # Plot all similarities in light gray
+    fig.add_trace(
+        go.Scatter(
+            y=similarities,
+            mode="lines",
+            line=dict(color="lightgray"),
+            name="Cosine Similarity",
+        )
+    )
+
+    # Highlight split features in black
+    split_x = [i for i in range(len(similarities)) if i in split_features]
+    split_y = [similarities[i] for i in split_x]
+    fig.add_trace(
+        go.Scatter(
+            x=split_x,
+            y=split_y,
+            mode="markers",
+            marker=dict(color="black", size=8),
+            name="Split Features",
+        )
+    )
+
+    # Highlight ablation features in red
+    ablation_x = [i for i in range(len(similarities)) if i in ablation_features]
+    ablation_y = [similarities[i] for i in ablation_x]
+    fig.add_trace(
+        go.Scatter(
+            x=ablation_x,
+            y=ablation_y,
+            mode="markers",
+            marker=dict(color="red", size=8),
+            name="Ablation Features",
+        )
+    )
+
+    fig.update_layout(
+        title="SAE Probe Cosine Similarities",
+        xaxis_title="Feature Index",
+        yaxis_title="Cosine Similarity",
+        height=400,
+        showlegend=True,
+    )
+    return fig
 
 
 def main():
@@ -273,6 +346,43 @@ def main():
 
     with st.expander("View the raw absorption data"):
         st.write(letter_absorptions)
+
+    sae_probe_cosine_similarities = get_sae_probe_cosine_similarities(
+        selected_sae_width, selected_layer, selected_sae_l0, selected_letter
+    )
+
+    # Get split features
+    split_features = result_df[result_df["letter"] == selected_letter][
+        "split_feats"
+    ].iloc[0]
+
+    # Get ablation features
+    ablation_features = letter_absorptions["ablation_feat"].unique()
+
+    st.subheader("Linear Probe & SAE Cosine Similarities")
+
+    probe_stats = get_probe_stats(selected_layer, selected_letter)
+    if not probe_stats.empty:
+        precision = probe_stats["precision"].iloc[0]
+        recall = probe_stats["recall"].iloc[0]
+        f1 = probe_stats["f1"].iloc[0]
+
+        st.write(
+            f"Linear probe performance for predicting first letter '{selected_letter}' (ignoring case) at layer {selected_layer}:"
+        )
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Precision", f"{precision:.3f}")
+        col2.metric("Recall", f"{recall:.3f}")
+        col3.metric("F1 Score", f"{f1:.3f}")
+    else:
+        st.write(
+            f"No probe statistics available for letter '{selected_letter}' at layer {selected_layer}."
+        )
+
+    fig = plot_sae_probe_cosine_similarities(
+        sae_probe_cosine_similarities, split_features, ablation_features
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
     selected_letter_feats = result_df[result_df["letter"] == selected_letter][
         "split_feats"
