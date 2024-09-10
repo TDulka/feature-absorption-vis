@@ -25,10 +25,37 @@ def load_sae_data(sae_l0, sae_width, layer, letter):
     ]
 
 def is_canonical_sae(sae_width, layer, sae_l0):
+    canonical_layer_l0_dict = {
+        16000: {
+            0: 105,
+            1: 102,
+            2: 141,
+            3: 59,
+            4: 124,
+            5: 68,
+            6: 70,
+            7: 69,
+            8: 71,
+            9: 73,
+        },
+        65000: {
+            0: 73,
+            1: 121,
+            2: 77,
+            3: 89,
+            4: 89,
+            5: 105,
+            6: 107,
+            7: 107,
+            8: 111,
+            9: 118,
+        },
+    }
+
     return (
-        sae_width in layer_l0_dict
-        and layer in layer_l0_dict[sae_width]
-        and layer_l0_dict[sae_width][layer] == sae_l0
+        sae_width in canonical_layer_l0_dict
+        and layer in canonical_layer_l0_dict[sae_width]
+        and canonical_layer_l0_dict[sae_width][layer] == sae_l0
     )
 
 def get_dashboard_url_or_path(sae_width, layer, sae_l0, feature):
@@ -59,12 +86,6 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
 
 
 
-layer_l0_dict = {
-    16000: {0: 105, 1: 102, 2: 141, 3: 59, 4: 124, 5: 68, 6: 70, 7: 69, 8: 71, 9: 73},
-    65000: {0: 73, 1: 121, 2: 77, 3: 89, 4: 89, 5: 105, 6: 107, 7: 107, 8: 111, 9: 118},
-}
-
-
 def main():
     st.title("Feature Absorption Results Explorer")
 
@@ -87,8 +108,23 @@ def main():
     ]
     available_l0s = sorted(filtered_df["sae_l0"].unique())
 
-    # Add dropdown for L0 selection
-    selected_sae_l0 = st.sidebar.selectbox("Select SAE L0", available_l0s, key="sae_l0")
+    # Find the canonical L0 for the selected layer and width
+    canonical_l0 = next(
+        (
+            l0
+            for l0 in available_l0s
+            if is_canonical_sae(selected_sae_width, selected_layer, l0)
+        ),
+        available_l0s[0],  # Default to the first L0 if no canonical is found
+    )
+
+    # Add dropdown for L0 selection with canonical as default
+    selected_sae_l0 = st.sidebar.selectbox(
+        "Select SAE L0",
+        available_l0s,
+        index=available_l0s.index(canonical_l0),
+        key="sae_l0",
+    )
 
     # Highlight if the selected SAE is canonical
     is_canonical = is_canonical_sae(selected_sae_width, selected_layer, selected_sae_l0)
