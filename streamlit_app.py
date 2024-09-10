@@ -103,6 +103,19 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
             .grid-container {
                 display: flex;
                 flex-direction: column;
+                margin: 0;
+                padding-left: 0;
+                padding-top: 20px;
+                white-space: wrap;
+                overflow-x: none;
+                box-sizing: border-box;
+            }
+            .grid-column {
+                max-height: none !important;
+                width: 100%;
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0 20px;
             }
             """
 
