@@ -117,6 +117,18 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
                 margin: 0;
                 padding: 0 20px;
             }
+            div.logits-table {
+                min-width: 0px;
+                flex-wrap: wrap;
+            }
+            div.logits-table > div.negative {
+                width: auto;
+                flex: 1;
+            }
+            div.logits-table > div.positive {
+                width: auto;
+                flex: 1;
+            }
             #column-0 {
                 display: none;
             }
