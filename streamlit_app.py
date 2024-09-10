@@ -243,30 +243,37 @@ def main():
     left_column_iframe, right_column_iframe = st.columns(2)
 
     with left_column_iframe:
-        feature_tabs = st.tabs(
-            [f"Feature: {feature}" for feature in selected_letter_feats]
-        )
+        if selected_letter_feats:
+            feature_tabs = st.tabs(
+                [f"Feature: {feature}" for feature in selected_letter_feats]
+            )
 
-        for tab, feature in zip(feature_tabs, selected_letter_feats):
-            with tab:
-                st.write("Tokens:")
-                st.code(f"Should activate on most '{selected_letter}' tokens")
-                display_dashboard(selected_sae_width, selected_layer, selected_sae_l0, feature)
+            for tab, feature in zip(feature_tabs, selected_letter_feats):
+                with tab:
+                    st.write("Tokens:")
+                    st.code(f"Should activate on most '{selected_letter}' tokens")
+                    display_dashboard(
+                        selected_sae_width, selected_layer, selected_sae_l0, feature
+                    )
 
     with right_column_iframe:
-        feature_tabs = st.tabs(
-            [
-                f"Feature: {feature} ({', '.join(tokens)})"
-                for feature, tokens in feature_unique_tokens.items()
-            ]
-        )
+        if feature_unique_tokens:
+            feature_tabs = st.tabs(
+                [
+                    f"Feature: {feature} ({', '.join(tokens)})"
+                    for feature, tokens in feature_unique_tokens.items()
+                ]
+            )
 
-        for tab, (feature, tokens) in zip(feature_tabs, feature_unique_tokens.items()):
-            with tab:
-                st.write("Tokens:")
-                st.code(f"{','.join(tokens)}")
-                display_dashboard(selected_sae_width, selected_layer, selected_sae_l0, feature)
-
+            for tab, (feature, tokens) in zip(
+                feature_tabs, feature_unique_tokens.items()
+            ):
+                with tab:
+                    st.write("Tokens:")
+                    st.code(f"{','.join(tokens)}")
+                    display_dashboard(
+                        selected_sae_width, selected_layer, selected_sae_l0, feature
+                    )
     
 
 if __name__ == "__main__":
