@@ -10,7 +10,6 @@ st.set_page_config(layout="wide")
 def load_available_sae_l0s():
     return pd.read_parquet("data/sae_split_feats.parquet")
 
-
 @st.cache_data
 def load_full_data():
     return pd.read_parquet("data/feature_absorption_results.parquet")
@@ -28,7 +27,7 @@ def load_sae_absorption_data(sae_l0, sae_width, layer):
 
 @st.cache_data
 def load_english_tokens():
-    return pd.read_csv("data/english_tokens.csv")
+    return pd.read_parquet("data/english_tokens.parquet")
 
 
 def get_random_letter_tokens(letter, n=30):
@@ -99,7 +98,20 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
         try:
             with open(dashboard_url_or_path, 'r') as file:
                 dashboard_html = file.read()
-            st.components.v1.html(dashboard_html, height=800, scrolling=True)
+
+            css_modification = """
+            .grid-container {
+                display: flex;
+                flex-direction: column;
+            }
+            """
+
+            # Insert the CSS modification just before the closing </style> tag
+            modified_html = dashboard_html.replace(
+                "</style>", f"{css_modification}</style>"
+            )
+
+            st.components.v1.html(modified_html, height=800, scrolling=True)
         except FileNotFoundError:
             st.error(f"Dashboard for feature {feature} not found. This may be due to the file being missing.")
 
@@ -310,7 +322,7 @@ def main():
                     st.write(f"Tokens absorbed by {feature}:")
                     st.code(f"{','.join(tokens)}")
 
-                    st.write("Tokens showing absorption across all absorbing features:")
+                    st.write("Tokens across all absorbing features:")
                     st.code(all_unique_tokens)
 
                     display_dashboard(
