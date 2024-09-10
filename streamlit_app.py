@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import random
 
 st.set_page_config(layout="wide")
 
@@ -23,6 +24,23 @@ def load_sae_data(sae_l0, sae_width, layer, letter):
         & (df["layer"] == layer)
         & (df["letter"] == letter)
     ]
+
+@st.cache_data
+def load_english_tokens():
+    return pd.read_csv("data/english_tokens.csv")
+
+
+def get_random_letter_tokens(letter, n=30):
+    tokens = load_english_tokens()
+    letter_tokens = tokens[tokens["letter"] == letter]["token"].tolist()
+    return random.sample(letter_tokens, n)
+
+
+def get_random_non_letter_tokens(letter, n=30):
+    tokens = load_english_tokens()
+    letter_tokens = tokens[tokens["letter"] != letter]["token"].tolist()
+    return random.sample(letter_tokens, n)
+
 
 def is_canonical_sae(sae_width, layer, sae_l0):
     canonical_layer_l0_dict = {
@@ -237,27 +255,31 @@ def main():
                 "Try copying the tokens showing absorption and test their activations on the main feature and compare with the absorbing features."
             )
 
-            st.write("All tokens showing absorption (for copying):")
-            st.code(all_unique_tokens)
-
     left_column_iframe, right_column_iframe = st.columns(2)
 
     with left_column_iframe:
-        if selected_letter_feats:
-            feature_tabs = st.tabs(
-                [f"Feature: {feature}" for feature in selected_letter_feats]
-            )
+        feature_tabs = st.tabs(
+            [f"Feature: {feature}" for feature in selected_letter_feats]
+        )
 
-            for tab, feature in zip(feature_tabs, selected_letter_feats):
-                with tab:
-                    st.write("Tokens:")
-                    st.code(f"Should activate on most '{selected_letter}' tokens")
-                    display_dashboard(
-                        selected_sae_width, selected_layer, selected_sae_l0, feature
-                    )
+        for tab, feature in zip(feature_tabs, selected_letter_feats):
+            with tab:
+                st.write(
+                    f"Random '{selected_letter}' tokens from the vocab for testing:"
+                )
+                st.code(f"{','.join(get_random_letter_tokens(selected_letter))}")
+
+                st.write(
+                    f"Random non-{selected_letter} tokens from the vocab for testing:"
+                )
+                st.code(f"{','.join(get_random_non_letter_tokens(selected_letter))}")
+
+                display_dashboard(
+                    selected_sae_width, selected_layer, selected_sae_l0, feature
+                )
 
     with right_column_iframe:
-        if feature_unique_tokens:
+        if len(feature_unique_tokens) > 0:
             feature_tabs = st.tabs(
                 [
                     f"Feature: {feature} ({', '.join(tokens)})"
@@ -269,8 +291,12 @@ def main():
                 feature_tabs, feature_unique_tokens.items()
             ):
                 with tab:
-                    st.write("Tokens:")
+                    st.write(f"Tokens absorbed by {feature}:")
                     st.code(f"{','.join(tokens)}")
+
+                    st.write("Tokens showing absorption across all absorbing features:")
+                    st.code(all_unique_tokens)
+
                     display_dashboard(
                         selected_sae_width, selected_layer, selected_sae_l0, feature
                     )
