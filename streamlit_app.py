@@ -35,7 +35,7 @@ def load_english_tokens():
 def get_random_letter_tokens(letter, n=30):
     tokens = load_english_tokens()
     letter_tokens = tokens[tokens["letter"] == letter]["token"].tolist()
-    return random.sample(letter_tokens, n)
+    return random.sample(letter_tokens, min(n, len(letter_tokens)))
 
 
 def get_random_non_letter_tokens(letter, n=30):
