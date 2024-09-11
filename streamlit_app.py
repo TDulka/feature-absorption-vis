@@ -4,6 +4,7 @@ import os
 import random
 import numpy as np
 import plotly.graph_objects as go
+from urllib.parse import urlencode
 
 st.set_page_config(layout="wide")
 
@@ -223,15 +224,30 @@ def main():
 
     available_saes_df = load_available_sae_l0s()
 
+    # Get query parameters
+    query_params = st.query_params
+
     # Move selectors to the sidebar
     st.sidebar.subheader("Select an SAE and the first letter to explore")
 
     layers = sorted(available_saes_df["layer"].unique())
-    selected_layer = st.sidebar.selectbox("Select Layer", layers, key="layer")
+    default_layer = int(query_params.get("layer", layers[0]))
+    selected_layer = st.sidebar.selectbox(
+        "Select Layer",
+        layers,
+        key="layer",
+        index=layers.index(default_layer) if default_layer in layers else 0,
+    )
 
     sae_widths = sorted(available_saes_df["sae_width"].unique())
+    default_sae_width = int(query_params.get("sae_width", sae_widths[0]))
     selected_sae_width = st.sidebar.selectbox(
-        "Select SAE Width", sae_widths, key="sae_width"
+        "Select SAE Width",
+        sae_widths,
+        key="sae_width",
+        index=sae_widths.index(default_sae_width)
+        if default_sae_width in sae_widths
+        else 0,
     )
 
     filtered_df = available_saes_df[
@@ -250,11 +266,14 @@ def main():
         available_l0s[0],  # Default to the first L0 if no canonical is found
     )
 
-    # Add dropdown for L0 selection with canonical as default
+    default_sae_l0 = int(query_params.get("sae_l0", canonical_l0))
+
     selected_sae_l0 = st.sidebar.selectbox(
         "Select SAE L0",
         available_l0s,
-        index=available_l0s.index(canonical_l0),
+        index=available_l0s.index(default_sae_l0)
+        if default_sae_l0 in available_l0s
+        else available_l0s.index(canonical_l0),
         key="sae_l0",
     )
 
@@ -286,26 +305,27 @@ def main():
         for letter in available_letters
     ]
 
-    # Check if the previously selected letter is still available
-    if (
-        "selected_letter" in st.session_state
-        and st.session_state.selected_letter in available_letters
-    ):
-        default_letter_index = list(available_letters).index(
-            st.session_state.selected_letter
-        )
-    else:
-        default_letter_index = 0
-
+    default_letter = query_params.get("letter", available_letters[0])
     selected_letter_option = st.sidebar.selectbox(
         "Select Letter (count of available absorbing features in parentheses)",
         letter_options,
-        index=default_letter_index,
+        index=available_letters.tolist().index(default_letter)
+        if default_letter in available_letters
+        else 0,
         key="letter",
     )
 
     # Extract the letter from the selected option
     selected_letter = selected_letter_option.split()[0]
+
+    # Update query parameters
+    new_query_params = {
+        "layer": selected_layer,
+        "sae_width": selected_sae_width,
+        "sae_l0": selected_sae_l0,
+        "letter": selected_letter,
+    }
+    st.query_params.update(new_query_params)
 
     # Store the selected letter in session state
     st.session_state.selected_letter = selected_letter
