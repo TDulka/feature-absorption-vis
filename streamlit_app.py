@@ -170,7 +170,9 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
 
 
 
-def plot_sae_probe_cosine_similarities(similarities, split_features, ablation_features):
+def plot_sae_probe_cosine_similarities(
+    similarities, split_features, absorbing_features
+):
     fig = go.Figure()
 
     # Plot all similarities in light gray
@@ -197,12 +199,12 @@ def plot_sae_probe_cosine_similarities(similarities, split_features, ablation_fe
     )
 
     # Highlight absorbing features in red
-    ablation_x = [i for i in range(len(similarities)) if i in ablation_features]
-    ablation_y = [similarities[i] for i in ablation_x]
+    absorption_x = [i for i in range(len(similarities)) if i in absorbing_features]
+    absorption_y = [similarities[i] for i in absorption_x]
     fig.add_trace(
         go.Scatter(
-            x=ablation_x,
-            y=ablation_y,
+            x=absorption_x,
+            y=absorption_y,
             mode="markers",
             marker=dict(color="red", size=8),
             name="Absorbing Features",
@@ -376,8 +378,8 @@ def main():
         "split_feats"
     ].iloc[0]
 
-    # Get ablation features
-    ablation_features = letter_absorptions["ablation_feat"].unique()
+    # Get absorbing features
+    absorbing_features = letter_absorptions["ablation_feat"].unique()
 
     st.subheader("Linear Probe & SAE Cosine Similarities")
 
@@ -404,7 +406,7 @@ def main():
             )
 
         fig = plot_sae_probe_cosine_similarities(
-            sae_probe_cosine_similarities, split_features, ablation_features
+            sae_probe_cosine_similarities, split_features, absorbing_features
         )
         st.plotly_chart(fig, use_container_width=True)
 
