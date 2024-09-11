@@ -118,7 +118,11 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
     dashboard_url_or_path = get_dashboard_url_or_path(sae_width, layer, sae_l0, feature)
     
     if is_canonical_sae(sae_width, layer, sae_l0):
-        st.components.v1.iframe(dashboard_url_or_path, height=800, scrolling=True)
+        iframe_html = f"""
+        <iframe src="{dashboard_url_or_path}" class="stIFrame" style="border:none; width:100%;" height="800" loading="lazy" scrolling="yes"></iframe>
+        """
+
+        st.components.v1.html(iframe_html, height=800, scrolling=True)
     else:
         try:
             with open(dashboard_url_or_path, 'r') as file:
