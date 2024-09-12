@@ -249,7 +249,7 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
 
 
 def main():
-    st.title("Latent Absorption Results Explorer")
+    st.title("Feature Absorption Results Explorer")
 
     available_saes_df = load_available_sae_l0s()
 
