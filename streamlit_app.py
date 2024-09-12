@@ -367,10 +367,6 @@ def main():
         & (filtered_df["letter"] == selected_letter)
     ]
 
-    st.subheader(
-        f"Latents associated with first letter being '{selected_letter}' in selected SAE"
-    )
-
     result_df = (
         final_df.groupby("letter")
         .agg(
@@ -410,6 +406,10 @@ def main():
 
     # Get absorbing latents
     absorbing_latents = letter_absorptions["ablation_feat"].unique()
+
+    st.header(
+        f"Latents in the selected SAE associated with the feature 'first letter is {selected_letter}'"
+    )
 
     st.subheader("Linear Probe & SAE Cosine Similarities")
 
