@@ -444,11 +444,16 @@ def main():
                     f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
                 )
                 neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_feature}"
-                st.write(neuronpedia_url)
+                with st.expander(
+                    f"View Selected Neuronpedia Feature {clicked_feature}"
+                ):
+                    st.components.v1.iframe(neuronpedia_url, height=600, scrolling=True)
             else:
                 st.write(
                     f"Selected feature {clicked_feature} for non-canonical SAE is not available on Neuronpedia."
                 )
+        elif is_canonical:
+            st.write("Click on any feature on the plot to see its neuronpedia page.")
 
     selected_letter_feats = result_df[result_df["letter"] == selected_letter][
         "split_feats"
