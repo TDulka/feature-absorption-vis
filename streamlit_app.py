@@ -4,8 +4,6 @@ import os
 import random
 import numpy as np
 import plotly.graph_objects as go
-from urllib.parse import urlencode
-import html
 
 st.set_page_config(layout="wide")
 
@@ -108,11 +106,11 @@ def get_dashboard_url_or_path(sae_width, layer, sae_l0, feature):
         return f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
     else:
         return os.path.join(
-            "data",
+            "static",
             "non_canonical_dashboards",
             f"layer_{layer}",
             f"width_{sae_width // 1000}k",
-            f"average_l0_{sae_l0}_feature_{feature}.html"
+            f"average_l0_{sae_l0}_feature_{feature}.html",
         )
 
 def display_dashboard(sae_width, layer, sae_l0, feature):
@@ -122,65 +120,82 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
         iframe_html = f"""
         <iframe src="{dashboard_url_or_path}" class="stIFrame" style="border:none; width:100%;" height="800" loading="lazy" scrolling="yes"></iframe>
         """
-
         st.components.v1.html(iframe_html, height=800, scrolling=True)
     else:
-        try:
-            with open(dashboard_url_or_path, 'r') as file:
-                dashboard_html = file.read()
+        # hacky way to get the dashboard to load lazily
+        # streamlit serves static files as text/plain, so we need to use a script to load the iframe
+        iframe_html = f"""
+        <iframe id="lazyIframe_{feature}" srcdoc="" width="100%" height="800px" style="border: none;" scrolling="yes"></iframe>
 
-            css_modification = """
-            .grid-container {
-                display: flex;
-                flex-direction: column;
-                margin: 0;
-                padding-left: 0;
-                padding-top: 20px;
-                white-space: wrap;
-                overflow-x: none;
-                box-sizing: border-box;
-            }
-            .grid-column {
-                max-height: none !important;
-                width: 100%;
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0 20px;
-            }
-            div.logits-table {
-                min-width: 0px;
-                flex-wrap: wrap;
-            }
-            div.logits-table > div.negative {
-                width: auto;
-                flex: 1;
-            }
-            div.logits-table > div.positive {
-                width: auto;
-                flex: 1;
-            }
-            #column-0 {
-                display: none;
-            }
-            """
-            # Insert the CSS modification just before the closing </style> tag
-            modified_html = dashboard_html.replace(
-                "</style>", f"{css_modification}</style>"
-            )
+        <script>
+        async function loadIframeContent_{feature}() {{
+            const iframe = document.getElementById('lazyIframe_{feature}');
+            if (!iframe.srcdoc) {{
+                try {{
+                    const response = await fetch('./app/{dashboard_url_or_path}');
+                    if (!response.ok) {{
+                        throw new Error('Network response was not ok');
+                    }}
+                    let htmlContent = await response.text();
+                    
+                    // Add CSS modifications
+                    const cssModification = `
+                    .grid-container {{
+                        display: flex;
+                        flex-direction: column;
+                        margin: 0;
+                        padding-left: 0;
+                        padding-top: 20px;
+                        white-space: wrap;
+                        overflow-x: none;
+                        box-sizing: border-box;
+                    }}
+                    .grid-column {{
+                        max-height: none !important;
+                        width: 100%;
+                        box-sizing: border-box;
+                        margin: 0;
+                        padding: 0 20px;
+                    }}
+                    div.logits-table {{
+                        min-width: 0px;
+                        flex-wrap: wrap;
+                    }}
+                    div.logits-table > div.negative {{
+                        width: auto;
+                        flex: 1;
+                    }}
+                    div.logits-table > div.positive {{
+                        width: auto;
+                        flex: 1;
+                    }}
+                    #column-0 {{
+                        display: none;
+                    }}
+                    </style>
+                    `;
+                    
+                    htmlContent = htmlContent.replace('</style>', cssModification + '</style>');
+                    iframe.srcdoc = htmlContent;
+                }} catch (error) {{
+                    console.error('Error loading iframe content:', error);
+                }}
+            }}
+        }}
 
-            # Properly escape the modified_html for use in srcdoc
-            escaped_html = html.escape(modified_html, quote=True)
+        const observer_{feature} = new IntersectionObserver((entries) => {{
+            entries.forEach(entry => {{
+                if (entry.isIntersecting) {{
+                    loadIframeContent_{feature}();
+                    observer_{feature}.unobserve(entry.target);
+                }}
+            }});
+        }});
 
-            iframe_html = f"""
-            <iframe class='stIFrame' width='100%' height='800' loading='lazy' scrolling='yes' 
-            style="border:none; width:100%;"
-                    srcdoc="{escaped_html}">
-            </iframe>
-            """
-
-            st.components.v1.html(iframe_html, height=900, scrolling=True)
-        except FileNotFoundError:
-            st.error(f"Dashboard for feature {feature} not found. This may be due to the file being missing.")
+        observer_{feature}.observe(document.getElementById('lazyIframe_{feature}'));
+        </script>
+        """
+        st.components.v1.html(iframe_html, height=900, scrolling=True)
 
 
 
