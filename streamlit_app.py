@@ -5,6 +5,7 @@ import random
 import numpy as np
 import plotly.graph_objects as go
 from urllib.parse import urlencode
+import html
 
 st.set_page_config(layout="wide")
 
@@ -113,7 +114,7 @@ def get_dashboard_url_or_path(sae_width, layer, sae_l0, feature):
             f"width_{sae_width // 1000}k",
             f"average_l0_{sae_l0}_feature_{feature}.html"
         )
-    
+
 def display_dashboard(sae_width, layer, sae_l0, feature):
     dashboard_url_or_path = get_dashboard_url_or_path(sae_width, layer, sae_l0, feature)
     
@@ -162,13 +163,22 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
                 display: none;
             }
             """
-
             # Insert the CSS modification just before the closing </style> tag
             modified_html = dashboard_html.replace(
                 "</style>", f"{css_modification}</style>"
             )
 
-            st.components.v1.html(modified_html, height=800, scrolling=True)
+            # Properly escape the modified_html for use in srcdoc
+            escaped_html = html.escape(modified_html, quote=True)
+
+            iframe_html = f"""
+            <iframe class='stIFrame' width='100%' height='800' loading='lazy' scrolling='yes' 
+            style="border:none; width:100%;"
+                    srcdoc="{escaped_html}">
+            </iframe>
+            """
+
+            st.components.v1.html(iframe_html, height=900, scrolling=True)
         except FileNotFoundError:
             st.error(f"Dashboard for feature {feature} not found. This may be due to the file being missing.")
 
