@@ -108,21 +108,21 @@ def is_canonical_sae(sae_width, layer, sae_l0):
         and canonical_layer_l0_dict[sae_width][layer] == sae_l0
     )
 
-def get_dashboard_url_or_path(sae_width, layer, sae_l0, feature):
+def get_dashboard_url_or_path(sae_width, layer, sae_l0, latent):
     if is_canonical_sae(sae_width, layer, sae_l0):
         sae_link_part = f"{layer}-gemmascope-res-{sae_width // 1000}k"
-        return f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{feature}?embed=true"
+        return f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{latent}?embed=true"
     else:
         return os.path.join(
             "data",
             "non_canonical_dashboards",
             f"layer_{layer}",
             f"width_{sae_width // 1000}k",
-            f"average_l0_{sae_l0}_feature_{feature}.html"
+            f"average_l0_{sae_l0}_feature_{latent}.html",
         )
 
-def display_dashboard(sae_width, layer, sae_l0, feature):
-    dashboard_url_or_path = get_dashboard_url_or_path(sae_width, layer, sae_l0, feature)
+def display_dashboard(sae_width, layer, sae_l0, latent):
+    dashboard_url_or_path = get_dashboard_url_or_path(sae_width, layer, sae_l0, latent)
     
     if is_canonical_sae(sae_width, layer, sae_l0):
         iframe_html = f"""
@@ -185,13 +185,13 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
 
             st.components.v1.html(iframe_html, height=900, scrolling=True)
         except FileNotFoundError:
-            st.error(f"Dashboard for feature {feature} not found. This may be due to the file being missing.")
+            st.error(
+                f"Dashboard for latent {latent} not found. This may be due to the file being missing."
+            )
 
 
 
-def plot_sae_probe_cosine_similarities(
-    similarities, split_features, absorbing_features
-):
+def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_latents):
     fig = go.Figure()
 
     # Plot all similarities in light gray
@@ -204,8 +204,8 @@ def plot_sae_probe_cosine_similarities(
         )
     )
 
-    # Highlight split features in black
-    split_x = [i for i in range(len(similarities)) if i in split_features]
+    # Highlight split latents in black
+    split_x = [i for i in range(len(similarities)) if i in split_latents]
     split_y = [similarities[i] for i in split_x]
     fig.add_trace(
         go.Scatter(
@@ -213,12 +213,12 @@ def plot_sae_probe_cosine_similarities(
             y=split_y,
             mode="markers",
             marker=dict(color="black", size=8, symbol="diamond"),
-            name="Split Features",
+            name="Split Latents",
         )
     )
 
-    # Highlight absorbing features in red
-    absorption_x = [i for i in range(len(similarities)) if i in absorbing_features]
+    # Highlight absorbing latents in red
+    absorption_x = [i for i in range(len(similarities)) if i in absorbing_latents]
     absorption_y = [similarities[i] for i in absorption_x]
     fig.add_trace(
         go.Scatter(
@@ -226,13 +226,13 @@ def plot_sae_probe_cosine_similarities(
             y=absorption_y,
             mode="markers",
             marker=dict(color="red", size=8),
-            name="Absorbing Features",
+            name="Absorbing Latents",
         )
     )
 
     fig.update_layout(
         title="SAE Probe Cosine Similarities",
-        xaxis_title="Feature Index",
+        xaxis_title="Latent Index",
         yaxis_title="Cosine Similarity",
         height=400,
         showlegend=True,
@@ -242,14 +242,14 @@ def plot_sae_probe_cosine_similarities(
 
     fig.update_traces(
         hoverinfo="text",
-        hovertemplate="<b>Feature:</b> %{x:.0f}<br><b>Cosine Similarity:</b> %{y:.4f}<extra></extra>",
+        hovertemplate="<b>Latent:</b> %{x:.0f}<br><b>Cosine Similarity:</b> %{y:.4f}<extra></extra>",
     )
 
     return fig
 
 
 def main():
-    st.title("Feature Absorption Results Explorer")
+    st.title("Latent Absorption Results Explorer")
 
     available_saes_df = load_available_sae_l0s()
 
@@ -317,26 +317,25 @@ def main():
         "letter"
     ].unique()
 
-    # Count absorbing features for each letter
+    # Count absorbing latents for each letter
     absorption_data = load_sae_absorption_data(
         selected_sae_l0, selected_sae_width, selected_layer
     )
-    letter_absorbing_features = {}
+    letter_absorbing_latents = {}
     for letter in available_letters:
-        absorbing_features = absorption_data[(absorption_data["letter"] == letter)][
+        absorbing_latents = absorption_data[(absorption_data["letter"] == letter)][
             "ablation_feat"
         ].nunique()
-        letter_absorbing_features[letter] = absorbing_features
+        letter_absorbing_latents[letter] = absorbing_latents
 
-    # Create letter options with absorbing feature counts
+    # Create letter options with absorbing latent counts
     letter_options = [
-        f"{letter} ({letter_absorbing_features[letter]})"
-        for letter in available_letters
+        f"{letter} ({letter_absorbing_latents[letter]})" for letter in available_letters
     ]
 
     default_letter = query_params.get("letter", available_letters[0])
     selected_letter_option = st.sidebar.selectbox(
-        "Select Letter (count of available absorbing features in parentheses)",
+        "Select Letter (count of available absorbing latents in parentheses)",
         letter_options,
         index=available_letters.tolist().index(default_letter)
         if default_letter in available_letters
@@ -365,7 +364,7 @@ def main():
     ]
 
     st.subheader(
-        f"First Letter Features for Layer {selected_layer}, SAE Width {selected_sae_width}, SAE L0 {selected_sae_l0}"
+        f"Latents associated with first letter being '{selected_letter}' in selected SAE"
     )
 
     result_df = (
@@ -381,17 +380,17 @@ def main():
 
     letter_absorptions = absorption_data[absorption_data["letter"] == selected_letter]
 
-    feature_tokens = (
+    latent_tokens = (
         letter_absorptions.groupby("ablation_feat")["token"].apply(list).reset_index()
     )
 
-    feature_unique_tokens = {}
+    latent_unique_tokens = {}
 
-    for _, row in feature_tokens.iterrows():
-        feature = row["ablation_feat"]
+    for _, row in latent_tokens.iterrows():
+        latent = row["ablation_feat"]
         tokens = row["token"]
         unique_tokens = list(set(tokens))  # Remove duplicates
-        feature_unique_tokens[feature] = unique_tokens
+        latent_unique_tokens[latent] = unique_tokens
 
     with st.expander("View the raw absorption data"):
         st.write(letter_absorptions)
@@ -400,13 +399,13 @@ def main():
         selected_sae_width, selected_layer, selected_sae_l0, selected_letter
     )
 
-    # Get split features
-    split_features = result_df[result_df["letter"] == selected_letter][
+    # Get split latents
+    split_latents = result_df[result_df["letter"] == selected_letter][
         "split_feats"
     ].iloc[0]
 
-    # Get absorbing features
-    absorbing_features = letter_absorptions["ablation_feat"].unique()
+    # Get absorbing latents
+    absorbing_latents = letter_absorptions["ablation_feat"].unique()
 
     st.subheader("Linear Probe & SAE Cosine Similarities")
 
@@ -433,29 +432,29 @@ def main():
             )
 
         fig = plot_sae_probe_cosine_similarities(
-            sae_probe_cosine_similarities, split_features, absorbing_features
+            sae_probe_cosine_similarities, split_latents, absorbing_latents
         )
         selected_points = plotly_events(fig, click_event=True)
 
         if selected_points:
-            clicked_feature = int(selected_points[0]["x"])
+            clicked_latent = int(selected_points[0]["x"])
             if is_canonical_sae(selected_sae_width, selected_layer, selected_sae_l0):
                 sae_link_part = (
                     f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
                 )
-                neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_feature}"
+                neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_latent}"
                 with st.expander(
-                    f"View Neuronpedia dashboard for feature {clicked_feature}"
+                    f"View Neuronpedia dashboard for latent {clicked_latent}"
                 ):
                     st.components.v1.iframe(neuronpedia_url, height=600, scrolling=True)
             else:
                 st.write(
-                    f"Selected feature {clicked_feature} for non-canonical SAE is not available on Neuronpedia."
+                    f"Selected latent {clicked_latent} for non-canonical SAE is not available on Neuronpedia."
                 )
         elif is_canonical:
-            st.write("Click on any feature on the plot to see its neuronpedia page.")
+            st.write("Click on any latent on the plot to see its neuronpedia page.")
 
-    selected_letter_feats = result_df[result_df["letter"] == selected_letter][
+    selected_letter_latents = result_df[result_df["letter"] == selected_letter][
         "split_feats"
     ].iloc[0]
 
@@ -464,51 +463,51 @@ def main():
     n_dashboards_to_display = 20
 
     with left_column:
-        st.subheader(f"Split features for letter {selected_letter}")
+        st.subheader("Split latents")
 
         if is_canonical:
-            feats_str = ", ".join([str(feat) for feat in selected_letter_feats])
+            latents_str = ", ".join([str(latent) for latent in selected_letter_latents])
 
-            feature_str = "feature" if len(selected_letter_feats) == 1 else "features"
+            latent_str = "latent" if len(selected_letter_latents) == 1 else "latents"
 
             st.write(
-                f"The {feature_str} {feats_str} should be the primary 'first letter is {selected_letter}' {feature_str}.",
+                f"The {latent_str} {latents_str} should be the primary 'first letter is {selected_letter}' {latent_str}.",
                 f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
-                f"\n\nTry finding words that start with {selected_letter} that don't activate the feature.",
+                f"\n\nTry finding words that start with {selected_letter} that don't activate the latent.",
                 "You can compare them with the tokens we have discovered in the right column.",
             )
 
     with right_column:
-        st.subheader("Absorbing Features")
+        st.subheader("Absorbing Latents")
 
-        if not feature_unique_tokens:
-            st.write("No absorbing features found for this selection.")
+        if not latent_unique_tokens:
+            st.write("No absorbing latents found for this selection.")
         else:
             all_unique_tokens = set()
-            for tokens in feature_unique_tokens.values():
+            for tokens in latent_unique_tokens.values():
                 all_unique_tokens.update(tokens)
 
             all_unique_tokens = ",".join(list(all_unique_tokens))
 
             if is_canonical:
                 st.write(
-                    f"We have discovered that some features capture the 'first letter is {selected_letter}' signal on specific tokens. "
-                    "Try copying the tokens showing absorption and test their activations on the main feature and compare with the absorbing features."
+                    f"We have discovered that some latents capture the 'first letter is {selected_letter}' signal on specific tokens. "
+                    "Try copying the tokens showing absorption and test their activations on the main latent and compare with the absorbing latents."
                 )
 
-        if len(feature_unique_tokens) > n_dashboards_to_display:
+        if len(latent_unique_tokens) > n_dashboards_to_display:
             st.write(
-                f"Displaying only the first {n_dashboards_to_display} absorbing features for performance reasons."
+                f"Displaying only the first {n_dashboards_to_display} absorbing latents for performance reasons."
             )
 
     left_column_iframe, right_column_iframe = st.columns(2)
 
     with left_column_iframe:
-        feature_tabs = st.tabs(
-            [f"Feature: {feature}" for feature in selected_letter_feats]
+        latent_tabs = st.tabs(
+            [f"Latent: {latent}" for latent in selected_letter_latents]
         )
 
-        for tab, feature in zip(feature_tabs, selected_letter_feats):
+        for tab, latent in zip(latent_tabs, selected_letter_latents):
             with tab:
                 if is_canonical:
                     st.write(
@@ -524,35 +523,35 @@ def main():
                     )
 
                 display_dashboard(
-                    selected_sae_width, selected_layer, selected_sae_l0, feature
+                    selected_sae_width, selected_layer, selected_sae_l0, latent
                 )
 
     with right_column_iframe:
-        if len(feature_unique_tokens) > 0:
-            feature_unique_tokens_capped = dict(
-                list(feature_unique_tokens.items())[:n_dashboards_to_display]
+        if len(latent_unique_tokens) > 0:
+            latent_unique_tokens_capped = dict(
+                list(latent_unique_tokens.items())[:n_dashboards_to_display]
             )
 
-            feature_tabs = st.tabs(
+            latent_tabs = st.tabs(
                 [
-                    f"Feature: {feature} ({', '.join(tokens)})"
-                    for feature, tokens in feature_unique_tokens_capped.items()
+                    f"Latent: {latent} ({', '.join(tokens)})"
+                    for latent, tokens in latent_unique_tokens_capped.items()
                 ]
             )
 
-            for i, (tab, (feature, tokens)) in enumerate(
-                zip(feature_tabs, feature_unique_tokens_capped.items())
+            for i, (tab, (latent, tokens)) in enumerate(
+                zip(latent_tabs, latent_unique_tokens_capped.items())
             ):
                 with tab:
                     if is_canonical:
-                        st.write(f"Tokens absorbed by {feature}:")
+                        st.write(f"Tokens absorbed by {latent}:")
                         st.code(f"{','.join(tokens)}")
 
-                        st.write("Tokens across all absorbing features:")
+                        st.write("Tokens across all absorbing latents:")
                         st.code(all_unique_tokens)
 
                     display_dashboard(
-                        selected_sae_width, selected_layer, selected_sae_l0, feature
+                        selected_sae_width, selected_layer, selected_sae_l0, latent
                     )
 
 
