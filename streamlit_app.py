@@ -430,6 +430,8 @@ def main():
 
     left_column, right_column = st.columns(2)
 
+    n_dashboards_to_display = 20
+
     with left_column:
         st.subheader(f"Split features for letter {selected_letter}")
 
@@ -461,6 +463,11 @@ def main():
                 "Try copying the tokens showing absorption and test their activations on the main feature and compare with the absorbing features."
             )
 
+            if len(feature_unique_tokens) > n_dashboards_to_display:
+                st.write(
+                    f"Displaying only the first {n_dashboards_to_display} absorbing features for performance reasons."
+                )
+
     left_column_iframe, right_column_iframe = st.columns(2)
 
     with left_column_iframe:
@@ -486,15 +493,19 @@ def main():
 
     with right_column_iframe:
         if len(feature_unique_tokens) > 0:
+            feature_unique_tokens_capped = dict(
+                list(feature_unique_tokens.items())[:n_dashboards_to_display]
+            )
+
             feature_tabs = st.tabs(
                 [
                     f"Feature: {feature} ({', '.join(tokens)})"
-                    for feature, tokens in feature_unique_tokens.items()
+                    for feature, tokens in feature_unique_tokens_capped.items()
                 ]
             )
 
-            for tab, (feature, tokens) in zip(
-                feature_tabs, feature_unique_tokens.items()
+            for i, (tab, (feature, tokens)) in enumerate(
+                zip(feature_tabs, feature_unique_tokens_capped.items())
             ):
                 with tab:
                     st.write(f"Tokens absorbed by {feature}:")
