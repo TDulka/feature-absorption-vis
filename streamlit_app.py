@@ -32,13 +32,13 @@ def load_sae_absorption_data(sae_l0, sae_width, layer):
 def load_english_tokens():
     return pd.read_parquet("data/english_tokens.parquet")
 
-
+@st.cache_data
 def get_random_letter_tokens(letter, n=30):
     tokens = load_english_tokens()
     letter_tokens = tokens[tokens["letter"] == letter]["token"].tolist()
     return random.sample(letter_tokens, min(n, len(letter_tokens)))
 
-
+@st.cache_data
 def get_random_non_letter_tokens(letter, n=30):
     tokens = load_english_tokens()
     letter_tokens = tokens[tokens["letter"] != letter]["token"].tolist()
@@ -212,7 +212,7 @@ def plot_sae_probe_cosine_similarities(
             x=split_x,
             y=split_y,
             mode="markers",
-            marker=dict(color="black", size=8),
+            marker=dict(color="black", size=8, symbol="diamond"),
             name="Split Features",
         )
     )
