@@ -447,7 +447,7 @@ def main():
                 st.write(neuronpedia_url)
             else:
                 st.write(
-                    f"Selected feature {clicked_feature} for non-canonical SAE is not on Neuronpedia."
+                    f"Selected feature {clicked_feature} for non-canonical SAE is not available on Neuronpedia."
                 )
 
     selected_letter_feats = result_df[result_df["letter"] == selected_letter][
@@ -461,16 +461,17 @@ def main():
     with left_column:
         st.subheader(f"Split features for letter {selected_letter}")
 
-        feats_str = ", ".join([str(feat) for feat in selected_letter_feats])
+        if is_canonical:
+            feats_str = ", ".join([str(feat) for feat in selected_letter_feats])
 
-        feature_str = "feature" if len(selected_letter_feats) == 1 else "features"
+            feature_str = "feature" if len(selected_letter_feats) == 1 else "features"
 
-        st.write(
-            f"The {feature_str} {feats_str} should be the primary 'first letter is {selected_letter}' {feature_str}.",
-            f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
-            f"\n\nTry finding words that start with {selected_letter} that don't activate the feature.",
-            "You can compare them with the tokens we have discovered in the right column.",
-        )
+            st.write(
+                f"The {feature_str} {feats_str} should be the primary 'first letter is {selected_letter}' {feature_str}.",
+                f"You should be able to test the activation with random words starting with letter {selected_letter} below.",
+                f"\n\nTry finding words that start with {selected_letter} that don't activate the feature.",
+                "You can compare them with the tokens we have discovered in the right column.",
+            )
 
     with right_column:
         st.subheader("Absorbing Features")
@@ -484,15 +485,16 @@ def main():
 
             all_unique_tokens = ",".join(list(all_unique_tokens))
 
-            st.write(
-                f"We have discovered that some features capture the 'first letter is {selected_letter}' signal on specific tokens. "
-                "Try copying the tokens showing absorption and test their activations on the main feature and compare with the absorbing features."
-            )
-
-            if len(feature_unique_tokens) > n_dashboards_to_display:
+            if is_canonical:
                 st.write(
-                    f"Displaying only the first {n_dashboards_to_display} absorbing features for performance reasons."
+                    f"We have discovered that some features capture the 'first letter is {selected_letter}' signal on specific tokens. "
+                    "Try copying the tokens showing absorption and test their activations on the main feature and compare with the absorbing features."
                 )
+
+        if len(feature_unique_tokens) > n_dashboards_to_display:
+            st.write(
+                f"Displaying only the first {n_dashboards_to_display} absorbing features for performance reasons."
+            )
 
     left_column_iframe, right_column_iframe = st.columns(2)
 
@@ -503,15 +505,18 @@ def main():
 
         for tab, feature in zip(feature_tabs, selected_letter_feats):
             with tab:
-                st.write(
-                    f"Random '{selected_letter}' tokens from the vocab for testing:"
-                )
-                st.code(f"{','.join(get_random_letter_tokens(selected_letter))}")
+                if is_canonical:
+                    st.write(
+                        f"Random '{selected_letter}' tokens from the vocab for testing:"
+                    )
+                    st.code(f"{','.join(get_random_letter_tokens(selected_letter))}")
 
-                st.write(
-                    f"Random non-{selected_letter} tokens from the vocab for testing:"
-                )
-                st.code(f"{','.join(get_random_non_letter_tokens(selected_letter))}")
+                    st.write(
+                        f"Random non-{selected_letter} tokens from the vocab for testing:"
+                    )
+                    st.code(
+                        f"{','.join(get_random_non_letter_tokens(selected_letter))}"
+                    )
 
                 display_dashboard(
                     selected_sae_width, selected_layer, selected_sae_l0, feature
@@ -534,11 +539,12 @@ def main():
                 zip(feature_tabs, feature_unique_tokens_capped.items())
             ):
                 with tab:
-                    st.write(f"Tokens absorbed by {feature}:")
-                    st.code(f"{','.join(tokens)}")
+                    if is_canonical:
+                        st.write(f"Tokens absorbed by {feature}:")
+                        st.code(f"{','.join(tokens)}")
 
-                    st.write("Tokens across all absorbing features:")
-                    st.code(all_unique_tokens)
+                        st.write("Tokens across all absorbing features:")
+                        st.code(all_unique_tokens)
 
                     display_dashboard(
                         selected_sae_width, selected_layer, selected_sae_l0, feature
