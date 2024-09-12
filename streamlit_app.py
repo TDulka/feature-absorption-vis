@@ -442,7 +442,7 @@ def main():
                 sae_link_part = (
                     f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
                 )
-                neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_latent}"
+                neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_latent}?embed=true"
                 with st.expander(
                     f"View Neuronpedia dashboard for latent {clicked_latent}"
                 ):
