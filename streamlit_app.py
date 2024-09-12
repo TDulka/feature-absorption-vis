@@ -4,8 +4,8 @@ import os
 import random
 import numpy as np
 import plotly.graph_objects as go
-from urllib.parse import urlencode
 import html
+from streamlit_plotly_events import plotly_events
 
 st.set_page_config(layout="wide")
 
@@ -60,6 +60,12 @@ def get_sae_probe_cosine_similarities(sae_width, layer, sae_l0, letter):
 @st.cache_data
 def load_probe_stats():
     return pd.read_parquet("data/probe_stats_across_layers.parquet")
+
+@st.cache_data
+def load_html_dashboard(dashboard_url_or_path):
+    with open(dashboard_url_or_path, "r") as file:
+        dashboard_html = file.read()
+    return dashboard_html
 
 
 def get_probe_stats(layer, letter):
@@ -126,8 +132,7 @@ def display_dashboard(sae_width, layer, sae_l0, feature):
         st.components.v1.html(iframe_html, height=800, scrolling=True)
     else:
         try:
-            with open(dashboard_url_or_path, 'r') as file:
-                dashboard_html = file.read()
+            dashboard_html = load_html_dashboard(dashboard_url_or_path)
 
             css_modification = """
             .grid-container {
@@ -231,7 +236,15 @@ def plot_sae_probe_cosine_similarities(
         yaxis_title="Cosine Similarity",
         height=400,
         showlegend=True,
+        hovermode="closest",
     )
+    # Add hover data for better information display
+
+    fig.update_traces(
+        hoverinfo="text",
+        hovertemplate="<b>Feature:</b> %{x:.0f}<br><b>Cosine Similarity:</b> %{y:.4f}<extra></extra>",
+    )
+
     return fig
 
 
@@ -422,7 +435,20 @@ def main():
         fig = plot_sae_probe_cosine_similarities(
             sae_probe_cosine_similarities, split_features, absorbing_features
         )
-        st.plotly_chart(fig, use_container_width=True)
+        selected_points = plotly_events(fig, click_event=True)
+
+        if selected_points:
+            clicked_feature = int(selected_points[0]["x"])
+            if is_canonical_sae(selected_sae_width, selected_layer, selected_sae_l0):
+                sae_link_part = (
+                    f"{selected_layer}-gemmascope-res-{selected_sae_width // 1000}k"
+                )
+                neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_feature}"
+                st.write(neuronpedia_url)
+            else:
+                st.write(
+                    f"Selected feature {clicked_feature} for non-canonical SAE is not on Neuronpedia."
+                )
 
     selected_letter_feats = result_df[result_df["letter"] == selected_letter][
         "split_feats"
@@ -517,7 +543,7 @@ def main():
                     display_dashboard(
                         selected_sae_width, selected_layer, selected_sae_l0, feature
                     )
-    
+
 
 if __name__ == "__main__":
     main()
