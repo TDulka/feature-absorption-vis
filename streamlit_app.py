@@ -230,6 +230,9 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
         )
     )
 
+    y_min = min(-0.3, min(similarities))
+    y_max = max(0.7, max(similarities))
+
     fig.update_layout(
         title="SAE Probe Cosine Similarities",
         xaxis_title="Latent Index",
@@ -237,6 +240,7 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
         height=400,
         showlegend=True,
         hovermode="closest",
+        yaxis=dict(range=[y_min, y_max]),
     )
     # Add hover data for better information display
 
