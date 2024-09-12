@@ -445,7 +445,7 @@ def main():
                 )
                 neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_feature}"
                 with st.expander(
-                    f"View Selected Neuronpedia Feature {clicked_feature}"
+                    f"View Neuronpedia dashboard for feature {clicked_feature}"
                 ):
                     st.components.v1.iframe(neuronpedia_url, height=600, scrolling=True)
             else:
