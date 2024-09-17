@@ -198,6 +198,15 @@ def display_dashboard(sae_width, layer, sae_l0, latent):
 
 
 def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_latents):
+    # Define a color theme
+    color_theme = {
+        "background": "white",
+        "grid": "lightgrey",
+        "line": "#CCCCCC",  # Light grey for the main line
+        "split": "#1f77b4",  # Blue for split latents
+        "absorbing": "#ff7f0e",  # Orange for absorbing latents
+    }
+
     fig = go.Figure()
 
     # Plot all similarities in light gray
@@ -205,12 +214,12 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
         go.Scatter(
             y=similarities,
             mode="lines",
-            line=dict(color="lightgray"),
+            line=dict(color=color_theme["line"]),
             name="Cosine Similarity",
         )
     )
 
-    # Highlight split latents in black
+    # Highlight split latents in blue
     split_x = [i for i in range(len(similarities)) if i in split_latents]
     split_y = [similarities[i] for i in split_x]
     fig.add_trace(
@@ -218,12 +227,12 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
             x=split_x,
             y=split_y,
             mode="markers",
-            marker=dict(color="black", size=8, symbol="diamond"),
+            marker=dict(color=color_theme["split"], size=9, symbol="diamond"),
             name="Split Latents",
         )
     )
 
-    # Highlight absorbing latents in red
+    # Highlight absorbing latents in orange
     absorption_x = [i for i in range(len(similarities)) if i in absorbing_latents]
     absorption_y = [similarities[i] for i in absorption_x]
     fig.add_trace(
@@ -231,24 +240,41 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
             x=absorption_x,
             y=absorption_y,
             mode="markers",
-            marker=dict(color="red", size=8),
+            marker=dict(color=color_theme["absorbing"], size=9),
             name="Absorbing Latents",
         )
     )
 
-    y_min = min(-0.3, min(similarities))
-    y_max = max(0.7, max(similarities))
+    y_min = min(-0.3, min(similarities) - 0.1)
+    y_max = max(0.7, max(similarities) + 0.1)
 
     fig.update_layout(
-        title="SAE Probe Cosine Similarities",
+        title="Cosine Similarities between all SAE Latents and Logistic Regression Probe",
         xaxis_title="Latent Index",
         yaxis_title="Cosine Similarity",
         height=400,
         showlegend=True,
         hovermode="closest",
-        yaxis=dict(range=[y_min, y_max]),
+        plot_bgcolor=color_theme["background"],
+        paper_bgcolor=color_theme["background"],
+        xaxis=dict(
+            showgrid=True,
+            gridcolor=color_theme["grid"],
+            gridwidth=1,
+            zeroline=True,
+            zerolinecolor=color_theme["grid"],
+            zerolinewidth=1,
+        ),
+        yaxis=dict(
+            range=[y_min, y_max],
+            showgrid=True,
+            gridcolor=color_theme["grid"],
+            gridwidth=1,
+            zeroline=True,
+            zerolinecolor=color_theme["grid"],
+            zerolinewidth=1,
+        ),
     )
-    # Add hover data for better information display
 
     fig.update_traces(
         hoverinfo="text",
