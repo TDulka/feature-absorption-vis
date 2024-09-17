@@ -392,9 +392,6 @@ def main():
         unique_tokens = list(set(tokens))  # Remove duplicates
         latent_unique_tokens[latent] = unique_tokens
 
-    with st.expander("View the raw absorption data"):
-        st.write(letter_absorptions)
-
     sae_probe_cosine_similarities = get_sae_probe_cosine_similarities(
         selected_sae_width, selected_layer, selected_sae_l0, selected_letter
     )
