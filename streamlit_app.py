@@ -24,7 +24,6 @@ def load_sae_absorption_data(sae_l0, sae_width, layer):
         (df["sae_l0"] == sae_l0)
         & (df["sae_width"] == sae_width)
         & (df["layer"] == layer)
-        & (df["feat_order"] == 0)
         & (df["is_absorption"])
     ]
 
@@ -58,8 +57,8 @@ def get_sae_probe_cosine_similarities(sae_width, layer, sae_l0, letter):
 
 
 @st.cache_data
-def load_probe_stats():
-    return pd.read_parquet("data/probe_stats_across_layers.parquet")
+def load_k_sparse_probe_stats():
+    return pd.read_parquet("data/k_sparse_results.parquet")
 
 @st.cache_data
 def load_html_dashboard(dashboard_url_or_path):
@@ -68,11 +67,18 @@ def load_html_dashboard(dashboard_url_or_path):
     return dashboard_html
 
 
-def get_probe_stats(layer, letter):
-    probe_stats = load_probe_stats()
-    return probe_stats[
-        (probe_stats["layer"] == layer) & (probe_stats["letter"] == letter)
+def get_probe_stats(layer, letter, sae_l0, sae_width):
+    probe_stats = load_k_sparse_probe_stats()
+
+    probe_stats = probe_stats[
+        (probe_stats["layer"] == layer)
+        & (probe_stats["letter"] == letter)
+        & (probe_stats["sae_l0"] == sae_l0)
+        & (probe_stats["sae_width"] == sae_width)
     ]
+
+    return probe_stats
+
 
 def is_canonical_sae(sae_width, layer, sae_l0):
     canonical_layer_l0_dict = {
@@ -411,22 +417,36 @@ def main():
     st.subheader("Linear Probe & SAE Cosine Similarities")
 
     # Add a checkbox to toggle the Linear Probe section visibility
-    show_linear_probe = st.checkbox("Show Linear Probe Statistics", value=True)
+    show_linear_probe = st.checkbox("Show Probe Statistics", value=True)
 
     if show_linear_probe:
-        probe_stats = get_probe_stats(selected_layer, selected_letter)
+        probe_stats = get_probe_stats(
+            selected_layer, selected_letter, selected_sae_l0, selected_sae_width
+        )
         if not probe_stats.empty:
-            precision = probe_stats["precision"].iloc[0]
-            recall = probe_stats["recall"].iloc[0]
-            f1 = probe_stats["f1"].iloc[0]
+            precision_probe = probe_stats["precision_probe"].iloc[0]
+            recall_probe = probe_stats["recall_probe"].iloc[0]
+            f1_probe = probe_stats["f1_probe"].iloc[0]
+
+            precision_sae = probe_stats["precision_sparse_sae_1"].iloc[0]
+            recall_sae = probe_stats["recall_sparse_sae_1"].iloc[0]
+            f1_sae = probe_stats["f1_sparse_sae_1"].iloc[0]
+
+            top_sae = probe_stats["split_feats"].iloc[0][0]
 
             st.write(
-                f"Linear probe performance for predicting first letter '{selected_letter}' (ignoring case) at layer {selected_layer}:"
+                f"Comparison of classification performance when using the top SAE latent ({top_sae}) or the logistic regression (LR) probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
             )
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Precision", f"{precision:.3f}")
-            col2.metric("Recall", f"{recall:.3f}")
-            col3.metric("F1 Score", f"{f1:.3f}")
+
+            col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
+
+            col1.metric("SAE Precision", f"{precision_sae:.3f}")
+            col2.metric("SAE Recall", f"{recall_sae:.3f}")
+            col3.metric("SAE F1 Score", f"{f1_sae:.3f}")
+
+            col5.metric("LR Probe Precision", f"{precision_probe:.3f}")
+            col6.metric("LR Probe Recall", f"{recall_probe:.3f}")
+            col7.metric("LR Probe F1 Score", f"{f1_probe:.3f}")
         else:
             st.write(
                 f"No probe statistics available for letter '{selected_letter}' at layer {selected_layer}."
