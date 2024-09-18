@@ -420,7 +420,10 @@ def render_task_list():
             col1, col2 = st.columns([0.05, 0.95])
             with col1:
                 task["completed"] = st.checkbox(
-                    "", key=f"task_{task['id']}", value=task["completed"]
+                    task["id"],
+                    key=f"task_{task['id']}",
+                    value=task["completed"],
+                    label_visibility="collapsed",
                 )
             with col2:
                 if task["completed"]:
