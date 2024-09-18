@@ -285,6 +285,14 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
 
 
 def main():
+    hide_header = """<style>
+    header {
+    visibility: hidden;
+    }
+    </style>
+    """
+    st.markdown(hide_header, unsafe_allow_html=True)
+
     st.title("Feature Absorption Results Explorer")
 
     available_saes_df = load_available_sae_l0s()
