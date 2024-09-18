@@ -249,7 +249,9 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
     y_max = max(0.7, max(similarities) + 0.1)
 
     fig.update_layout(
-        title="Cosine Similarities between all SAE Latents and Logistic Regression Probe",
+        title=dict(
+            text="SAE Latents & LR Probe Cosine Similarities", font=dict(size=24)
+        ),
         xaxis_title="Latent Index",
         yaxis_title="Cosine Similarity",
         height=400,
@@ -283,6 +285,65 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
 
     return fig
 
+def plot_k_sparse_f1_scores(probe_stats):
+    k_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 50]
+    f1_scores = [probe_stats[f"f1_sparse_sae_{k}"].iloc[0] for k in k_values]
+    split_feats = probe_stats["split_feats"].iloc[0]
+    num_split_feats = len(split_feats)
+
+    # Define colors
+    bar_colors = [
+        "#1f77b4" if i < num_split_feats else "#7f7f7f" for i in range(len(k_values))
+    ]
+
+    # Create labels with k values and split feature numbers
+    labels = [
+        f"{k} ({'+ ' if i > 0 else ''}{split_feats[i]})"
+        if i < num_split_feats
+        else str(k)
+        for i, k in enumerate(k_values)
+    ]
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=[str(k) for k in k_values],  # Convert k values to strings
+                y=f1_scores,
+                marker_color=bar_colors,
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title=dict(text="F1 Scores for k-Sparse Probes", font=dict(size=24)),
+        xaxis_title="k (Split Latent Number)",
+        yaxis_title="F1 Score",
+        height=400,
+        yaxis=dict(range=[0, 1]),
+        xaxis=dict(
+            type="category",  # Set x-axis type to category
+            categoryorder="array",
+            categoryarray=[str(k) for k in k_values],  # Ensure correct order
+            tickangle=45,  # Rotate labels by 45 degrees
+            tickmode="array",
+            tickvals=[str(k) for k in k_values],
+            ticktext=labels,
+        ),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+    )
+
+    # Add gridlines
+    fig.update_yaxes(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor="lightgrey",
+        zeroline=True,
+        zerolinecolor="lightgrey",
+        zerolinewidth=1,
+    )
+
+    return fig
 
 def main():
     hide_header = """<style>
@@ -294,78 +355,6 @@ def main():
     st.markdown(hide_header, unsafe_allow_html=True)
 
     st.title("Feature Absorption Results Explorer")
-
-    with st.expander("What is feature absorption?", expanded=True):
-        st.write(
-            'This app demonstrates a particularly problematic case of feature splitting we call "feature absorption" where a seemingly interpretable monosemantic latent '
-            'capturing a feature like "first letter is L" has many exceptions captured by other latents. Our paper with full analysis can be found here: (link coming soon).'
-        )
-
-        st.write(
-            'When working with Sparse Autoencoders (SAEs), you might expect that when you find an SAE latent capturing a feature like "first letter of token is L", '
-            "it will be good at distinguishing tokens starting with L from those that don't. If the latent isn't a great classifier, "
-            "you might think it's only because the feature is split into multiple latents in this particular SAE, perhaps one for lowercase L and one for uppercase L and you can find those latents. "
-            "You might suppose that there will be a certain width and sparsity of your SAE where the feature splits into a handful of interpretable latents."
-        )
-
-        st.write(
-            "However, we attempt to demonstrate that you'll likely encounter a more problematic behavior called feature absorption. You might indeed find a couple of latents that seem to be the main "
-            '"first letter is L" latents capturing many tokens starting with L, but they will have seemingly random exceptions, e.g. "_legal", "_load", "_longtime", and others. '
-            'For these exception tokens, a different set of SAE latents will absorb the "first letter is L" direction. These absorbing latents would be very hard to discover without the ground truth data.'
-        )
-
-        st.write(
-            "This app aims to demonstrate that feature absorption is a phenomenon that occurs and should be considered when interpreting SAE latents. "
-            "Our metrics for classifying where feature splitting and feature absorption happen are imperfect, and we don't claim the results are exhaustive."
-            "Consider them as an existence proof of a problematic behavior."
-        )
-
-    with st.expander("How we calculate feature **splitting**"):
-        st.write(
-            "We measure feature splitting using k-sparse probing on SAE activations. "
-            "This method involves training a logistic regression probe on the top k SAE latents "
-            "that are most predictive of the first-letter task. A significant increase in the "
-            "probe's F1 score when moving from k to k+1 latents indicates that the additional "
-            "latent provides meaningful signal, suggesting a feature split."
-        )
-        st.write(
-            "For example, in the case of a split between capital 'L' and lowercase 'l' features, "
-            "a k-sparse probe with k=2 trained on both these features would likely predict "
-            "'starts with letter L' much better than either feature alone. This improvement "
-            "in prediction accuracy is indicative of feature splitting."
-        )
-        st.write(
-            "The effectiveness of this method can be visualized by plotting F1 score against k. "
-            "For instance, the k-sparse probe for the letter 'L' might show a significant jump "
-            "in F1 score when moving from k=1 to k=2, corresponding to feature splitting. In contrast, "
-            "for a letter like 'N' where splitting might not occur, the F1 score could remain "
-            "relatively constant across different k values."
-        )
-        st.write(
-            "We detect feature splitting by measuring whether increasing k by one causes a jump in F1 score "
-            "by more than a threshold tau. We set tau to 0.03 after manually inspecting features with "
-            "various thresholds. You can see this visually in a figure below."
-        )
-
-    with st.expander("How we determine feature **absorption**"):
-        st.write(
-            "We determine whether feature absorption has occurred for a particular latent through the following process:"
-        )
-        st.write(
-            "1. We first identify k feature splits for the given first-letter latent using a k-sparse probe."
-        )
-        st.write(
-            "2. We then find false-negative tokens that all k feature-split SAE latents fail to activate on, but which a logistic regression (LR) probe correctly classifies."
-        )
-        st.write(
-            "3. For these tokens, we run an integrated-gradients ablation experiment to find the most causally important SAE latents for the spelling of that token."
-        )
-        st.write(
-            "4. We consider feature absorption to have occurred if the SAE latent receiving the largest negative magnitude ablation effect has a cosine similarity with the LR probe above 0.025, and its ablation effect is larger by at least 1.0 than the second highest ablation effect."
-        )
-        st.write(
-            "It's important to note that this approach may not capture all instances of feature absorption, such as cases where multiple latents absorb the feature together or where the main latents continue to activate but very weakly."
-        )
 
     available_saes_df = load_available_sae_l0s()
 
@@ -519,6 +508,87 @@ def main():
     probe_stats = get_probe_stats(
         selected_layer, selected_letter, selected_sae_l0, selected_sae_width
     )
+
+    with st.expander("What is feature absorption?", expanded=True):
+        st.write(
+            'This app demonstrates a particularly problematic case of feature splitting we call "feature absorption" where a seemingly interpretable monosemantic latent '
+            'capturing a feature like "first letter is L" has many exceptions captured by other latents. Our paper with full analysis can be found here: (link coming soon).'
+        )
+
+        st.write(
+            'When working with Sparse Autoencoders (SAEs), you might expect that when you find an SAE latent capturing a feature like "first letter of token is L", '
+            "it will be good at distinguishing tokens starting with L from those that don't. If the latent isn't a great classifier, "
+            "you might think it's only because the feature is split into multiple latents in this particular SAE, perhaps one for lowercase L and one for uppercase L and you can find those latents. "
+            "You might suppose that there will be a certain width and sparsity of your SAE where the feature splits into a handful of interpretable latents."
+        )
+
+        st.write(
+            "However, we attempt to demonstrate that you'll likely encounter a more problematic behavior called feature absorption. You might indeed find a couple of latents that seem to be the main "
+            '"first letter is L" latents capturing many tokens starting with L, but they will have seemingly random exceptions, e.g. "_legal", "_load", "_longtime", and others. '
+            'For these exception tokens, a different set of SAE latents will absorb the "first letter is L" direction. These absorbing latents would be very hard to discover without the ground truth data.'
+        )
+
+        st.write(
+            "This app aims to demonstrate that feature absorption is a phenomenon that occurs and should be considered when interpreting SAE latents. "
+            "Our metrics for classifying where feature splitting and feature absorption happen are imperfect, and we don't claim the results are exhaustive."
+            "Consider them as an existence proof of a problematic behavior."
+        )
+
+    with st.expander("How we calculate feature **splitting**"):
+        st.write(
+            "We measure feature splitting using k-sparse probing on SAE activations. "
+            "This method involves training a logistic regression probe on the top k SAE latents "
+            "that are most predictive of the first-letter task. A significant increase in the "
+            "probe's F1 score when moving from k to k+1 latents indicates that the additional "
+            "latent provides meaningful signal, suggesting a feature split."
+        )
+        st.write(
+            "For example, in the case of a split between capital 'L' and lowercase 'l' features, "
+            "a k-sparse probe with k=2 trained on both these features would likely predict "
+            "'starts with letter L' much better than either feature alone. This improvement "
+            "in prediction accuracy is indicative of feature splitting."
+        )
+        st.write(
+            "The effectiveness of this method can be visualized by plotting F1 score against k. "
+            "For instance, the k-sparse probe for the letter 'L' might show a significant jump "
+            "in F1 score when moving from k=1 to k=2, corresponding to feature splitting. In contrast, "
+            "for a letter like 'N' where splitting might not occur, the F1 score could remain "
+            "relatively constant across different k values."
+        )
+        st.write(
+            "We detect feature splitting by measuring whether increasing k by one causes a jump in F1 score "
+            "by more than a threshold tau. We set tau to 0.03 after manually inspecting features with "
+            "various thresholds. You can see this visually in a figure below."
+        )
+
+        if not probe_stats.empty:
+            fig_k_sparse = plot_k_sparse_f1_scores(probe_stats)
+            st.plotly_chart(fig_k_sparse, use_container_width=True)
+
+            st.write(
+                "The blue bars represent which latents we categorize as split, with their corresponding numbers shown in parentheses."
+            )
+
+    with st.expander("How we determine feature **absorption**"):
+        st.write(
+            "We determine whether feature absorption has occurred for a particular latent through the following process:"
+        )
+        st.write(
+            "1. We first identify k feature splits for the given first-letter latent using a k-sparse probe."
+        )
+        st.write(
+            "2. We then find false-negative tokens that all k feature-split SAE latents fail to activate on, but which a logistic regression (LR) probe correctly classifies."
+        )
+        st.write(
+            "3. For these tokens, we run an integrated-gradients ablation experiment to find the most causally important SAE latents for the spelling of that token."
+        )
+        st.write(
+            "4. We consider feature absorption to have occurred if the SAE latent receiving the largest negative magnitude ablation effect has a cosine similarity with the LR probe above 0.025, and its ablation effect is larger by at least 1.0 than the second highest ablation effect."
+        )
+        st.write(
+            "It's important to note that this approach may not capture all instances of feature absorption, such as cases where multiple latents absorb the feature together or where the main latents continue to activate but very weakly."
+        )
+
     if not probe_stats.empty:
         precision_probe = probe_stats["precision_probe"].iloc[0]
         recall_probe = probe_stats["recall_probe"].iloc[0]
@@ -548,10 +618,11 @@ def main():
         col6.metric("LR Probe Recall", f"{recall_probe:.3f}")
         col7.metric("LR Probe F1 Score", f"{f1_probe:.3f}")
 
-        fig = plot_sae_probe_cosine_similarities(
+        st.subheader("Cosine Similarities")
+        fig_cosine = plot_sae_probe_cosine_similarities(
             sae_probe_cosine_similarities, split_latents, absorbing_latents
         )
-        selected_points = plotly_events(fig, click_event=True)
+        selected_points = plotly_events(fig_cosine, click_event=True)
 
         if selected_points:
             clicked_latent = int(selected_points[0]["x"])
