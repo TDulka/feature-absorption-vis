@@ -295,6 +295,78 @@ def main():
 
     st.title("Feature Absorption Results Explorer")
 
+    with st.expander("What is feature absorption?", expanded=True):
+        st.write(
+            'This app demonstrates a particularly problematic case of feature splitting we call "feature absorption" where a seemingly interpretable monosemantic latent '
+            'capturing a feature like "first letter is L" has many exceptions captured by other latents. Our paper with full analysis can be found here: (link coming soon).'
+        )
+
+        st.write(
+            'When working with Sparse Autoencoders (SAEs), you might expect that when you find an SAE latent capturing a feature like "first letter of token is L", '
+            "it will be good at distinguishing tokens starting with L from those that don't. If the latent isn't a great classifier, "
+            "you might think it's only because the feature is split into multiple latents in this particular SAE, perhaps one for lowercase L and one for uppercase L and you can find those latents. "
+            "You might suppose that there will be a certain width and sparsity of your SAE where the feature splits into a handful of interpretable latents."
+        )
+
+        st.write(
+            "However, we attempt to demonstrate that you'll likely encounter a more problematic behavior called feature absorption. You might indeed find a couple of latents that seem to be the main "
+            '"first letter is L" latents capturing many tokens starting with L, but they will have seemingly random exceptions, e.g. "_legal", "_load", "_longtime", and others. '
+            'For these exception tokens, a different set of SAE latents will absorb the "first letter is L" direction. These absorbing latents would be very hard to discover without the ground truth data.'
+        )
+
+        st.write(
+            "This app aims to demonstrate that feature absorption is a phenomenon that occurs and should be considered when interpreting SAE latents. "
+            "Our metrics for classifying where feature splitting and feature absorption happen are imperfect, and we don't claim the results are exhaustive."
+            "Consider them as an existence proof of a problematic behavior."
+        )
+
+    with st.expander("How we calculate feature **splitting**"):
+        st.write(
+            "We measure feature splitting using k-sparse probing on SAE activations. "
+            "This method involves training a logistic regression probe on the top k SAE latents "
+            "that are most predictive of the first-letter task. A significant increase in the "
+            "probe's F1 score when moving from k to k+1 latents indicates that the additional "
+            "latent provides meaningful signal, suggesting a feature split."
+        )
+        st.write(
+            "For example, in the case of a split between capital 'L' and lowercase 'l' features, "
+            "a k-sparse probe with k=2 trained on both these features would likely predict "
+            "'starts with letter L' much better than either feature alone. This improvement "
+            "in prediction accuracy is indicative of feature splitting."
+        )
+        st.write(
+            "The effectiveness of this method can be visualized by plotting F1 score against k. "
+            "For instance, the k-sparse probe for the letter 'L' might show a significant jump "
+            "in F1 score when moving from k=1 to k=2, corresponding to feature splitting. In contrast, "
+            "for a letter like 'N' where splitting might not occur, the F1 score could remain "
+            "relatively constant across different k values."
+        )
+        st.write(
+            "We detect feature splitting by measuring whether increasing k by one causes a jump in F1 score "
+            "by more than a threshold tau. We set tau to 0.03 after manually inspecting features with "
+            "various thresholds. You can see this visually in a figure below."
+        )
+
+    with st.expander("How we determine feature **absorption**"):
+        st.write(
+            "We determine whether feature absorption has occurred for a particular latent through the following process:"
+        )
+        st.write(
+            "1. We first identify k feature splits for the given first-letter latent using a k-sparse probe."
+        )
+        st.write(
+            "2. We then find false-negative tokens that all k feature-split SAE latents fail to activate on, but which a logistic regression (LR) probe correctly classifies."
+        )
+        st.write(
+            "3. For these tokens, we run an integrated-gradients ablation experiment to find the most causally important SAE latents for the spelling of that token."
+        )
+        st.write(
+            "4. We consider feature absorption to have occurred if the SAE latent receiving the largest negative magnitude ablation effect has a cosine similarity with the LR probe above 0.025, and its ablation effect is larger by at least 1.0 than the second highest ablation effect."
+        )
+        st.write(
+            "It's important to note that this approach may not capture all instances of feature absorption, such as cases where multiple latents absorb the feature together or where the main latents continue to activate but very weakly."
+        )
+
     available_saes_df = load_available_sae_l0s()
 
     # Get query parameters
@@ -444,47 +516,37 @@ def main():
     # Get absorbing latents
     absorbing_latents = letter_absorptions["ablation_feat"].unique()
 
-    st.header(
-        f"Latents in the selected SAE associated with the feature 'first letter is {selected_letter}'"
+    probe_stats = get_probe_stats(
+        selected_layer, selected_letter, selected_sae_l0, selected_sae_width
     )
+    if not probe_stats.empty:
+        precision_probe = probe_stats["precision_probe"].iloc[0]
+        recall_probe = probe_stats["recall_probe"].iloc[0]
+        f1_probe = probe_stats["f1_probe"].iloc[0]
 
-    st.subheader("Linear Probe & SAE Cosine Similarities")
+        precision_sae = probe_stats["precision_sparse_sae_1"].iloc[0]
+        recall_sae = probe_stats["recall_sparse_sae_1"].iloc[0]
+        f1_sae = probe_stats["f1_sparse_sae_1"].iloc[0]
 
-    # Add a checkbox to toggle the Linear Probe section visibility
-    show_linear_probe = st.checkbox("Show Probe Statistics", value=True)
+        top_sae = probe_stats["split_feats"].iloc[0][0]
 
-    if show_linear_probe:
-        probe_stats = get_probe_stats(
-            selected_layer, selected_letter, selected_sae_l0, selected_sae_width
+        st.subheader(
+            "Logistic Regression Probe is a better classifier than the top SAE latent"
         )
-        if not probe_stats.empty:
-            precision_probe = probe_stats["precision_probe"].iloc[0]
-            recall_probe = probe_stats["recall_probe"].iloc[0]
-            f1_probe = probe_stats["f1_probe"].iloc[0]
 
-            precision_sae = probe_stats["precision_sparse_sae_1"].iloc[0]
-            recall_sae = probe_stats["recall_sparse_sae_1"].iloc[0]
-            f1_sae = probe_stats["f1_sparse_sae_1"].iloc[0]
+        st.write(
+            f"Comparison of classification performance when using the top SAE latent ({top_sae}) or the logistic regression (LR) probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
+        )
 
-            top_sae = probe_stats["split_feats"].iloc[0][0]
+        col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
 
-            st.write(
-                f"Comparison of classification performance when using the top SAE latent ({top_sae}) or the logistic regression (LR) probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
-            )
+        col1.metric("SAE Precision", f"{precision_sae:.3f}")
+        col2.metric("SAE Recall", f"{recall_sae:.3f}")
+        col3.metric("SAE F1 Score", f"{f1_sae:.3f}")
 
-            col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
-
-            col1.metric("SAE Precision", f"{precision_sae:.3f}")
-            col2.metric("SAE Recall", f"{recall_sae:.3f}")
-            col3.metric("SAE F1 Score", f"{f1_sae:.3f}")
-
-            col5.metric("LR Probe Precision", f"{precision_probe:.3f}")
-            col6.metric("LR Probe Recall", f"{recall_probe:.3f}")
-            col7.metric("LR Probe F1 Score", f"{f1_probe:.3f}")
-        else:
-            st.write(
-                f"No probe statistics available for letter '{selected_letter}' at layer {selected_layer}."
-            )
+        col5.metric("LR Probe Precision", f"{precision_probe:.3f}")
+        col6.metric("LR Probe Recall", f"{recall_probe:.3f}")
+        col7.metric("LR Probe F1 Score", f"{f1_probe:.3f}")
 
         fig = plot_sae_probe_cosine_similarities(
             sae_probe_cosine_similarities, split_latents, absorbing_latents
@@ -499,7 +561,8 @@ def main():
                 )
                 neuronpedia_url = f"https://neuronpedia.org/gemma-2-2b/{sae_link_part}/{clicked_latent}?embed=true"
                 with st.expander(
-                    f"View Neuronpedia dashboard for latent {clicked_latent}"
+                    f"View Neuronpedia dashboard for latent {clicked_latent}",
+                    expanded=True,
                 ):
                     st.components.v1.iframe(neuronpedia_url, height=600, scrolling=True)
             else:
@@ -512,6 +575,10 @@ def main():
     selected_letter_latents = result_df[result_df["letter"] == selected_letter][
         "split_feats"
     ].iloc[0]
+
+    st.header(
+        f"Latents in the selected SAE associated with the feature 'first letter is {selected_letter}'"
+    )
 
     left_column, right_column = st.columns(2)
 
