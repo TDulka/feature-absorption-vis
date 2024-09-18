@@ -436,7 +436,6 @@ def render_task_list():
             for task in st.session_state.tasks:
                 task["completed"] = False
 
-
 def main():
     hide_header = """<style>
     header {
@@ -446,7 +445,79 @@ def main():
     """
     st.markdown(hide_header, unsafe_allow_html=True)
 
+    st.sidebar.title("Navigation")
+    page = st.sidebar.radio(
+        "Go to", ["Feature Absorption Explorer", "Cosine Similarity Comparisons"]
+    )
 
+    if page == "Feature Absorption Explorer":
+        feature_absorption_explorer()
+    elif page == "Cosine Similarity Comparisons":
+        cosine_similarity_comparison()
+
+
+def cosine_similarity_comparison():
+    st.title("SAE Latent Cosine Similarities With Linear Probe")
+
+    st.write(
+        "These plots allow you to compare cosine similarities across different L0 values for each SAE width. "
+        "You can use the sidebar to select different layers and letters for comparison."
+    )
+
+    available_saes_df = load_available_sae_l0s()
+
+    # Sidebar selectors
+    st.sidebar.subheader("Select parameters for comparison")
+
+    layers = sorted(available_saes_df["layer"].unique())
+    selected_layer = st.sidebar.selectbox("Select Layer", layers)
+
+    letters = sorted(available_saes_df["letter"].unique())
+    selected_letter = st.sidebar.selectbox("Select Letter", letters)
+
+    # Function to plot cosine similarities for a given width
+    def plot_cosine_similarities(width):
+        available_l0s = sorted(
+            available_saes_df[
+                (available_saes_df["layer"] == selected_layer)
+                & (available_saes_df["sae_width"] == width)
+            ]["sae_l0"].unique()
+        )
+
+        for l0 in available_l0s:
+            similarities = get_sae_probe_cosine_similarities(
+                width, selected_layer, l0, selected_letter
+            )
+
+            # Get split latents using get_probe_stats()
+            probe_stats = get_probe_stats(selected_layer, selected_letter, l0, width)
+            split_latents = (
+                probe_stats["split_feats"].iloc[0] if not probe_stats.empty else []
+            )
+
+            absorption_data = load_sae_absorption_data(l0, width, selected_layer)
+            absorbing_latents = absorption_data[
+                (absorption_data["letter"] == selected_letter)
+            ]["ablation_feat"].unique()
+
+            fig = plot_sae_probe_cosine_similarities(
+                similarities, split_latents, absorbing_latents
+            )
+            fig.update_layout(
+                title=f"Cosine Similarities for Width {width}, L0 {l0}, Layer {selected_layer}, Letter {selected_letter}"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    # Plot for width 16000
+    st.subheader("Cosine Similarities for SAE Width 16000")
+    plot_cosine_similarities(16000)
+
+    # Plot for width 65000
+    st.subheader("Cosine Similarities for SAE Width 65000")
+    plot_cosine_similarities(65000)
+
+
+def feature_absorption_explorer():
     st.title("Feature Absorption Results Explorer")
 
     available_saes_df = load_available_sae_l0s()
