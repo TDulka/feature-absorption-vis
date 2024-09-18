@@ -659,7 +659,7 @@ def main():
     n_dashboards_to_display = 20
 
     with left_column:
-        st.subheader("Split latents")
+        st.subheader(f"Split latents ({len(selected_letter_latents)})")
 
         if is_canonical:
             latents_str = ", ".join([str(latent) for latent in selected_letter_latents])
@@ -674,7 +674,7 @@ def main():
             )
 
     with right_column:
-        st.subheader("Absorbing Latents")
+        st.subheader(f"Absorbing Latents ({len(latent_unique_tokens)})")
 
         if not latent_unique_tokens:
             st.write("No absorbing latents found for this selection.")
