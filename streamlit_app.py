@@ -600,12 +600,10 @@ def main():
 
         top_sae = probe_stats["split_feats"].iloc[0][0]
 
-        st.subheader(
-            "Logistic Regression Probe is a better classifier than the top SAE latent"
-        )
+        st.subheader("Comparison of main SAE split latent and LR probe performance")
 
         st.write(
-            f"Comparison of classification performance when using the top SAE latent ({top_sae}) or the logistic regression (LR) probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
+            f"Comparison of classification performance when using the main SAE latent ({top_sae}) or the logistic regression (LR) probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
         )
 
         col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
@@ -619,6 +617,11 @@ def main():
         col7.metric("LR Probe F1 Score", f"{f1_probe:.3f}")
 
         st.subheader("Cosine Similarities")
+
+        st.write(
+            "We observe that in most cases, the SAE latents that we categorize as split based on k-sparse probing also have a high cosine similarity to the LR probe."
+        )
+
         fig_cosine = plot_sae_probe_cosine_similarities(
             sae_probe_cosine_similarities, split_latents, absorbing_latents
         )
