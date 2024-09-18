@@ -345,6 +345,95 @@ def plot_k_sparse_f1_scores(probe_stats):
 
     return fig
 
+def initialize_tasks():
+    if "tasks" not in st.session_state:
+        st.session_state.tasks = [
+            {
+                "id": "select_letter",
+                "description": 'Select a letter (e.g., "L") and observe its split latents',
+                "hint": 'Use the sidebar to select a letter and look at the "Split latents" section',
+                "completed": False,
+            },
+            {
+                "id": "compare_metrics",
+                "description": "Compare the performance of the main SAE latent vs. the LR probe",
+                "hint": 'Check the "Comparison of main SAE split latent and LR probe performance" section',
+                "completed": False,
+            },
+            {
+                "id": "test_split_latent",
+                "description": "Convince yourself that the split latent is capturing the feature of interest by testing it on random words starting with the selected letter",
+                "hint": "Click on a split latent and use the embedded Neuronpedia dashboard to test activations",
+                "completed": False,
+            },
+            {
+                "id": "find_non_activating",
+                "description": "Find words that start with the selected letter but don't strongly activate the main split latent",
+                "hint": "You can copy tokens from the Absorbing Latents section or come up with your own.",
+                "completed": False,
+            },
+            {
+                "id": "test_absorbing_latent",
+                "description": "Identify an absorbing latent and test its tokens using Neuronpedia",
+                "hint": 'Look at the "Absorbing Latents" section and use the embedded Neuronpedia dashboard',
+                "completed": False,
+            },
+            {
+                "id": "compare_activations",
+                "description": "Compare activations of absorbed tokens on the absorbing latent vs. the main split latent",
+                "hint": "Use Neuronpedia to test the same tokens on both the absorbing and main split latents",
+                "completed": False,
+            },
+            {
+                "id": "explore_cosine_similarities",
+                "description": "Explore the cosine similarities graph and click on different latents",
+                "hint": 'Check out the "Cosine Similarities" section and interact with the graph',
+                "completed": False,
+            },
+            {
+                "id": "compare_letters",
+                "description": "Repeat the process for a different letter and compare the feature absorption behavior",
+                "hint": "Select a new letter from the sidebar and go through the previous steps again",
+                "completed": False,
+            },
+            {
+                "id": "investigate_canonical",
+                "description": "Switch between a canonical and non-canonical SAE for the same letter",
+                "hint": 'Use the "Select SAE L0" dropdown in the sidebar to switch between SAEs',
+                "completed": False,
+            },
+            {
+                "id": "analyze_k_sparse",
+                "description": "Analyze the k-sparse probe graph to understand how F1 score changes",
+                "hint": 'Expand the "How we calculate feature splitting" section and examine the graph',
+                "completed": False,
+            },
+        ]
+
+
+def render_task_list():
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("Feature Absorption Discovery Tasks", expanded=True):
+        st.write("Complete these tasks to explore feature absorption:")
+
+        for task in st.session_state.tasks:
+            col1, col2 = st.columns([0.05, 0.95])
+            with col1:
+                task["completed"] = st.checkbox(
+                    "", key=f"task_{task['id']}", value=task["completed"]
+                )
+            with col2:
+                if task["completed"]:
+                    st.markdown(f"~~{task['description']}~~")
+                else:
+                    st.write(task["description"])
+                    st.info(task["hint"])
+
+        if st.button("Reset Tasks"):
+            for task in st.session_state.tasks:
+                task["completed"] = False
+
+
 def main():
     hide_header = """<style>
     header {
@@ -353,6 +442,7 @@ def main():
     </style>
     """
     st.markdown(hide_header, unsafe_allow_html=True)
+
 
     st.title("Feature Absorption Results Explorer")
 
@@ -462,6 +552,9 @@ def main():
 
     # Store the selected letter in session state
     st.session_state.selected_letter = selected_letter
+
+    initialize_tasks()
+    render_task_list()
 
     final_df = filtered_df[
         (filtered_df["sae_l0"] == selected_sae_l0)
