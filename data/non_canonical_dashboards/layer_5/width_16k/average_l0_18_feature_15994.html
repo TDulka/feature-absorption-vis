@@ -1,0 +1,976 @@
+
+<div id='dropdown-container'></div>
+
+<div class='grid-container'>
+        <div id='column-0' class="grid-column" style='max-height: 750px; '>
+        <!-- Feature Info Tables -->
+        <div class="feature-tables" id="feature-tables-0"></div></div>
+    
+    <div id='column-1' class="grid-column" style='max-height: 750px; '>
+        <!-- Activation densities histogram -->
+        <div class="plotly-hist" id="histogram-acts-0" style="height: 150px; margin-top: 0px;"></div>
+        <!-- Logits table -->
+        <div class="logits-table" id="logits-table-0"></div>
+        <!-- Logits histogram -->
+        <div class="plotly-hist" id="histogram-logits-0" style="height: 150px; margin-top: 0px;"></div></div>
+    
+    <div id='column-2-0' class="grid-column" style='max-height: 750px; '>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-0"></div></div>
+    
+    <div id='column-2-1' class="grid-column" style='max-height: 750px; '>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-1"></div>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-2"></div>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-3"></div></div>
+    
+    <div id='column-2-2' class="grid-column" style='max-height: 750px; '>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-4"></div>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-5"></div>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-6"></div></div>
+    
+    <div id='column-2-3' class="grid-column" style='max-height: 750px; '>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-7"></div>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-8"></div>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-9"></div></div>
+    
+    <div id='column-2-4' class="grid-column" style='max-height: 750px; '>
+        <!-- Sequence group -->
+        <div class="seq-group" id="seq-group-2-10"></div></div>
+</div>
+
+<style>
+/* Styling of the top-level container */
+.grid-container {
+    font-family: 'system-ui';
+    border: 1px solid #e6e6e6;
+    background-color: #fff;
+    margin: 30px 10px;
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.25);
+    display: grid;
+    justify-content: start;
+    grid-template-columns: auto;
+    overflow-x: auto;
+    overflow-y: visible;
+    grid-auto-flow: column;
+    white-space: nowrap;
+    padding-bottom: 12px;
+    padding-top: 35px;
+    padding-left: 20px;
+}
+/* Styling each grid column (note, the max-height controls height of grid-container) */
+.grid-column {
+    margin-left: 20px;
+    padding-right: 20px;
+    width: max-content;
+    overflow-y: auto;
+    max-height: 750px;
+}
+/* Styling the scrollbars */
+::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+    background: #999;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+/* Margin at the bottom of each histogram */
+.plotly-hist {
+    margin-bottom: 25px;
+}
+/* Margins below the titles (most subtitles are h4, except for the prompt-centric view which has h2 titles) */
+h4 {
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+/* Some space below the <hr> line in prompt-centric vis */
+hr {
+    margin-bottom: 35px;
+}
+table {
+    border: unset;
+    color: black;
+    border-collapse: collapse;
+    width: -moz-fit-content;
+    width: -webkit-fit-content;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 0.8em;
+}
+table.table-left tr {
+    border-bottom: 1px solid #eee;
+    padding: 15px;
+}
+table.table-left td {
+    padding: 3px 4px;
+}
+table.table-left {
+    width: 100%;
+}
+table.table-left td.left-aligned {
+    max-width: 120px;
+    overflow-x: hidden;
+}
+td {
+    border: none;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+.right-aligned {
+    text-align: right;
+}
+.left-aligned {
+    text-align: left;
+}
+.center-aligned {
+    text-align: center;
+    padding-bottom: 8px;
+}
+table code {
+    background-color: #ddd;
+    padding: 2px;
+    border-radius: 3px;
+}
+.table-container {
+    width: 100%;
+}
+.half-width-container {
+    display: flex;
+}
+.half-width {
+    width: 50%;
+    margin-right: -4px;
+}
+
+/* Feature tables should have space below them, also they should have a min column width */
+div.feature-tables table {
+    margin-bottom: 25px;
+    min-width: 250px;
+}
+/* Configure logits table container (i.e. the thing containing the smaller and larger tables) */
+div.logits-table {
+    min-width: 375px;
+    display: flex;
+    overflow-x: hidden;
+    margin-bottom: 20px;
+}
+/* Code is always bold in this table (this is just the neg/pos string tokens) */
+div.logits-table code {
+    font-weight: bold;
+}
+/* Set width of the tables inside the container (so they can stack horizontally), also put a gap between them */
+div.logits-table > div.positive {
+    width: 47%;
+}
+div.logits-table > div.negative {
+    width: 47%;
+    margin-right: 5%;
+}
+
+
+/* Styling of the dropdowns */
+select {
+    appearance: none;
+    border: 0;
+    flex: 1;
+    padding: 0 1em;
+    background-color: #eee;
+    cursor: pointer;
+}
+.select {
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    display: flex;
+    width: 100px;
+    height: 25px;
+    border-radius: .25em;
+    overflow: hidden;
+    position: relative;
+    margin-right: 15px;
+}
+.select::after {
+    position: absolute;
+    content: '\25BC';
+    font-size: 9px;
+    top: 0;
+    right: 0;
+    padding: 1em;
+    background-color: #ddd;
+    transition: .25s all ease;
+    pointer-events: none;
+}
+.select:hover::after {
+    color: black;
+}
+#dropdown-container {
+    margin-left: 10px;
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+}
+/* Default font & appearance for the words in the sequence, before being hovered over */
+code {
+    font-family: Consolas, Menlo, Monaco;
+}
+/* Margin at the bottom of every sequence group, plus handle how overflow works (maybe not necessary) */
+.seq-group {
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-top: 5px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+/* Margin between single sequences */
+.seq {
+    margin-bottom: 11px;
+}
+/* Styling for each token in a sequence */
+.token {
+    font-family: Consolas, Menlo, Monaco;
+    font-size: 0.9em;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    padding: 1px;
+    color: black;
+    display: inline;
+    white-space: pre-wrap;
+}
+/* All the messy hovering stuff! */
+.hover-text {
+    position: relative;
+    cursor: pointer;
+    display: inline-block; /* Needed to contain the tooltip */
+    box-sizing: border-box;
+}
+.tooltip {
+    background-color: #fff;
+    color: #333;
+    text-align: center;
+    border-radius: 10px;
+    padding: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: 'system-ui';
+    font-size: 1.1em;
+    display: none;
+    position: fixed;
+    z-index: 1000;
+}
+.token:hover {
+    border-top: 3px solid black;
+}
+.tooltip-container {
+    position: absolute;
+    pointer-events: none;
+}
+.hover-text:hover + .tooltip-container .tooltip {
+    display: block;
+}
+
+
+</style>
+
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(event) {
+    const ALL_DATA = defineData();
+    setupPage(ALL_DATA['DASHBOARD_DATA'], ALL_DATA['AGGDATA']);
+});
+
+function setupPage(DASHBOARD_DATA, AGGDATA) {
+    // Dynamically creates dropdowns from the data (by parsing its keys), and causes `createVis` to be called whenever
+    // the dropdowns change. This includes the initial call to `createVis` with the first key, which is START_KEY.
+
+    const START_KEY = "15994";
+        // The start key has already been user-defined, we need to check it's present in DASHBOARD_DATA
+    if (!Object.keys(DASHBOARD_DATA).includes(START_KEY)) {
+        console.error(`No data available for key: ${START_KEY}`);
+    }
+    const startParts = START_KEY.split('|');
+    
+    // Function which will measure the width of a key (used for dynamically setting the width of our dropdowns)
+    function measureTextWidth(text, font) {
+        // Create a temporary span element
+        const span = document.createElement("span");
+        span.style.visibility = "hidden"; // Make sure it's not visible
+        span.style.position = "absolute"; // Take it out of document flow
+        span.style.font = font; // Apply font styling similar to the select options
+        span.textContent = text;
+        document.body.appendChild(span);
+        const width = span.offsetWidth; // Get the width of the span
+        document.body.removeChild(span); // Remove the span from the body
+        return width;
+    }
+    
+    // Check if there's only one key, in which case we have no selection to make
+    if (Object.keys(DASHBOARD_DATA).length === 1) {
+    
+        const onlyKey = Object.keys(DASHBOARD_DATA)[0];
+        createVis(DASHBOARD_DATA[onlyKey]);
+    
+    } else {
+    
+        // Assuming `DASHBOARD_DATA` is available and d3 has been included
+        const parsedKeys = Object.keys(DASHBOARD_DATA).map(key => key.split("|"));
+    
+        // Determine `n` - the number of dropdowns needed
+        const n = parsedKeys[0].length;
+    
+        // Create a structure to store options for each dropdown
+        const options = Array.from({ length: n }, () => new Set());
+    
+        // Populate options for each dropdown
+        parsedKeys.forEach(parts => {
+            parts.forEach((part, index) => options[index].add(part));
+        });
+    
+        // Select the container for the dropdowns
+        const container = d3.select('#dropdown-container');
+    
+        // Create the dropdowns
+        options.forEach((opts, i) => {
+            // We wrap each `select` element in a `.select` div, for styling reasons)
+            const selectDiv = container.append('div').attr('class', 'select');
+            const selectElem = selectDiv.append('select').attr('id', `select-${i}`);
+            let maxWidth = 0;
+    
+            // Set the title of this dropdown
+            
+    
+            opts.forEach(opt => {
+                // Add this as an option
+                const optionElem = selectElem.append('option').text(opt).attr('value', opt);
+    
+                // If it matches the start key, set it to true
+                if (startParts[i] === opt) {
+                    optionElem.attr('selected', true);
+                }
+    
+                // Calculate the width of this option, and possibly update the max width (for the select div)
+                const width = measureTextWidth(opt, "1em system-ui");
+                if (width > maxWidth) {
+                    maxWidth = width;
+                }
+            });
+    
+            // Set the width of the select div to the max width + 45px (for the dropdown arrow)
+            selectDiv.style('width', `${maxWidth + 45}px`);
+    
+            // Add event listener to update the visualization (and the selection options) when the dropdown changes
+            selectElem.on('change', function() {
+                updateDropdowns();
+            });
+        });
+    
+        // This gets called every time the dropdowns are updated
+        function updateDropdowns() {
+    
+            // Empty all grid-column elements
+            d3.selectAll(".grid-column").each(function() {
+                d3.select(this).selectAll("*").html(""); 
+            });
+    
+            // Get the current value of each dropdown
+            const currentSelections = options.map((_, i) => d3.select(`#select-${i}`).property('value'));
+    
+            // Disable options that are not available based on the current selections
+            options.forEach((opts, i) => {
+                const select = d3.select(`#select-${i}`);
+                select.selectAll('option').each(function() {
+                    const optionValue = d3.select(this).attr('value');
+                    const potentialKey = [...currentSelections.slice(0, i), optionValue, ...currentSelections.slice(i + 1)].join('|');
+                    d3.select(this).attr('disabled', !DASHBOARD_DATA.hasOwnProperty(potentialKey) ? true : null);
+                });
+            });
+    
+            // Parse these options into the key for our DASHBOARD_DATA object
+            const selectedKey = currentSelections.join('|');
+    
+            // Create vis using that data
+            createVis(DASHBOARD_DATA[selectedKey]);
+        }
+    
+        // Initial trigger
+        updateDropdowns();
+    }
+}
+
+function createVis(DATA) {
+    // Create the vis from the data (this is where all the JavaScript files in this repo get dumped into). The DATA
+    // object here will be DASHBOARD_DATA["8"] in the feature-centric vis, or DASHBOARD_DATA["act_quantile|'first' (6)"]
+    // in the prompt-centric vis).
+
+        // ! Using `DATA.actsHistogramData` to fill in the activations histogram
+    
+    function createActsLine(color, width, height) {
+        return {
+            type: 'line', line: {color: color, width: width},
+            x0: 0, x1: 0, xref: 'x',
+            y0: 0, y1: height, yref: 'paper',
+            visible: false,
+        }
+    }
+    
+    function createActsAnnotation() {
+        return {
+            text: '', showarrow: false,
+            x: 0, xref: 'x', 
+            y: 0.9, yref: 'paper',
+            xshift: 3, align: 'left', xanchor: 'left',
+            visible: false,
+        }
+    }
+    
+    function setupActsHistogram(histId, histData) {
+    
+        // Create layout. This has 2 lines with annotations, both initially set to invisible (first is for dynamic on-hover
+        // and second is for static, for the prompt-centric vis). We need to define them both so that when JavaScript alters
+        // 'shapes[0]' or 'shapes[1]' we get no error
+        var layout = {
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white',
+            xaxis: {
+                gridcolor: '#eee',
+                zerolinecolor: '#eee',
+                tickvals: histData.ticks,
+                range: [0, 1.2 * Math.max(...histData.x)],
+            },
+            yaxis: {gridcolor: '#eee', zerolinecolor: '#eee'},
+            barmode: 'relative',
+            bargap: 0.01,
+            showlegend: false,
+            margin: {l: 50, r: 25, b: 25, t: 25, pad: 4},
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            responsive: true,
+            shapes: [createActsLine('black', 2, 1.0), createActsLine('black', 1, 0.9)],
+            annotations: [createActsAnnotation(), createActsAnnotation()],
+        };
+    
+        // Create traces (this is simple)
+        var traces = [{
+            x: histData.x,
+            y: histData.y,
+            type: 'bar',
+            marker: {color: histData.colors},
+        }];
+    
+        // Plot the histogram
+        Plotly.newPlot(histId, traces, layout, {responsive: true, displayModeBar: false});
+    
+        // Maybe add title (if the title already existed then we update it, otherwise we create a new one)
+        if(histData.title) {
+            var histogramElement = document.getElementById(histId);
+            var existingTitleElement = histogramElement.previousSibling;
+            if (existingTitleElement && existingTitleElement.tagName === 'H4') {
+                existingTitleElement.innerHTML = histData.title;
+            } else {
+                var titleElement = document.createElement('h4');
+                titleElement.innerHTML = histData.title;
+                histogramElement.parentNode.insertBefore(titleElement, histogramElement);
+            }
+        }
+    }
+    
+    // 'actsHistogramData' is a dictionary mapping suffixes to histogram data (to make each histogram unique)
+    // We iterate over it, and create a histogram for each one
+    Object.entries(DATA.actsHistogramData).forEach(([suffix, histData]) => {
+        var t0 = performance.now();
+    
+        histId = `histogram-acts-${suffix}`;
+        setupActsHistogram(histId, histData);
+    
+        var t1 = performance.now();
+        console.log(`HTML for ${histId} generated in ${(t1 - t0).toFixed(1)} ms`);
+    });
+    
+    
+    
+    
+    // ! Using `DATA.logitsHistogramData` to fill in the feature tables
+    
+    function createLogitsLine(color, width, height) {
+        return {
+            type: 'line', line: {color: color, width: width},
+            x0: 0, x1: 0, xref: 'x',
+            y0: 0, y1: height, yref: 'paper',
+            visible: false,
+        }
+    }
+    
+    function createLogitsAnnotation() {
+        return {
+            text: '', showarrow: false,
+            x: 0, xref: 'x', 
+            y: 0.9, yref: 'paper',
+            xshift: 3, align: 'left', xanchor: 'left',
+            visible: false,
+        }
+    }
+    
+    function setupLogitsHistogram(histId, histData) {
+    
+        // Create layout. This has 2 lines with annotations, both initially set to invisible (first is for dynamic on-hover
+        // and second is for static, for the prompt-centric vis). We need to define them both so that when JavaScript
+        // alters 'shapes[0]' or 'shapes[1]' we get no error
+        var layout = {
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white',
+            xaxis: {
+                gridcolor: '#eee',
+                zerolinecolor: '#eee',
+                tickvals: histData.ticks,
+                range: [1.2 * Math.min(...histData.x), 1.2 * Math.max(...histData.x)],
+            },
+            yaxis: {gridcolor: '#eee', zerolinecolor: '#eee'},
+            barmode: 'relative',
+            bargap: 0.01,
+            showlegend: false,
+            margin: {l: 50, r: 25, b: 25, t: 25, pad: 4},
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            responsive: true,
+            shapes: [createActsLine('black', 2, 1.0), createActsLine('black', 1, 0.9)],
+            annotations: [createLogitsAnnotation(), createLogitsAnnotation()],
+        };
+    
+        // Create traces. This is a bit messier than for acts_histogram_script.js, because we have 2 different colors
+        traces = [
+            {
+                x: histData.x.filter(value => value >= 0),
+                y: histData.y.filter((_, i) => histData.x[i] >= 0),
+                type: 'bar',
+                marker: {color: 'rgba(0,0,255,0.5)'}
+            },
+            {
+                x: histData.x.filter(value => value < 0),
+                y: histData.y.filter((_, i) => histData.x[i] < 0),
+                type: 'bar',
+                marker: {color: 'rgba(255,0,0,0.5)'}
+            }
+        ];
+    
+        // Plot the histogram
+        Plotly.newPlot(histId, traces, layout, {responsive: true, displayModeBar: false});
+    
+        // Maybe add title (if the title already existed then we update it, otherwise we create a new one)
+        if(histData.title) {
+            var histogramElement = document.getElementById(histId);
+            var existingTitleElement = histogramElement.previousSibling;
+            if (existingTitleElement && existingTitleElement.tagName === 'H4') {
+                existingTitleElement.innerHTML = histData.title;
+            } else {
+                var titleElement = document.createElement('h4');
+                titleElement.innerHTML = histData.title;
+                histogramElement.parentNode.insertBefore(titleElement, histogramElement);
+            }
+        }
+    }
+    
+    // 'DATA.ogitsHistogramData' is a dictionary mapping suffixes to histogram data (to make each histogram unique)
+    // We iterate over it, and create a histogram for each one
+    Object.entries(DATA.logitsHistogramData).forEach(([suffix, histData]) => {
+        var t0 = performance.now();
+    
+        histId = `histogram-logits-${suffix}`;
+        setupLogitsHistogram(histId, histData);
+    
+        var t1 = performance.now();
+        console.log(`HTML for ${histId} generated in ${(t1 - t0).toFixed(1)} ms`);
+    });
+    
+    
+    
+    
+    // ! Using `DATA.featureTablesData` to create & fill in the feature tables
+    
+    function setupFeatureTables(tablesContainerId, tablesData, tableMetaData) {
+        
+        // Fetch table data (singular), if it doesn't exist then return early
+        const tableData = tablesData[tableMetaData.dataKey] || null;
+        if (tableData === null) {
+            return;
+        }
+    
+        // Get table container from its ID
+        const featureTablesDiv = d3.select(`#${tablesContainerId}`);
+    
+        // Add a div to hold the header and table, give it a unique ID, and empty it (if that div already existed)
+        const tableContainerId = `${tableMetaData.dataKey}-${tablesContainerId}`;
+        const tableContainer = featureTablesDiv.append("div").attr("id", tableContainerId);
+        tableContainer.selectAll("*").remove();
+    
+        // Add the title
+        tableContainer.append("h4").html(tableMetaData.title);
+    
+        // Create the table, and header / body
+        const table = tableContainer.append("table").attr("class", "table-left");
+        const thead = table.append("thead");
+        const tbody = table.append("tbody");
+        const headerRow = thead.append("tr");
+    
+        // Append the 3 columns to this table's header row
+        tableMetaData.columns.forEach(col => {
+            headerRow.append("td")
+            .attr("class", col === "Index" ? "left-aligned" : "right-aligned")
+            .html(col);
+        });
+    
+        // Append our data to the tbody
+        const rows = tbody.selectAll('tr')
+            .data(tableData)
+            .enter()
+            .append('tr');
+    
+        rows.selectAll('td')
+            .data(row => Object.values(row))
+            .enter()
+            .append('td')
+            .attr('class', (d, i) => i === 0 ? 'left-aligned' : 'right-aligned')
+            .html(d => d);
+    }
+        
+    // Define some data which will tell us how to create our tables (this isn't a function of data, it's always the same)
+    const featureTablesMetaData = [
+        {title: "NEURON ALIGNMENT", columns: ["Index", "Value", "% of L<sub>1</sub>"], dataKey: "neuronAlignment"},
+        {title: "CORRELATED NEURONS", columns: ["Index", "Pearson Corr.", "Cosine Sim."], dataKey: "correlatedNeurons"},
+        {title: "CORRELATED FEATURES", columns: ["Index", "Pearson Corr.", "Cosine Sim."], dataKey: "correlatedFeatures"},
+        {title: "CORRELATED FEATURES (B-ENCODER)", columns: ["Index", "Pearson Corr.", "Cosine Sim."], dataKey: "correlatedFeaturesB"},
+    ]
+    
+    // 'featureTablesData' is a dictionary mapping suffixes to feature tables data (to make each table unique)
+    // We iterate over it, and create a table for each one
+    Object.entries(DATA.featureTablesData).forEach(([suffix, tablesData]) => {
+        var t0 = performance.now();
+    
+        // For each set of tables, we need to empty it, then create each of the new tables (up to 3)
+        tablesContainerId = `feature-tables-${suffix}`;
+        featureTablesMetaData.forEach(tableMetaData => {
+            setupFeatureTables(tablesContainerId, tablesData, tableMetaData);
+        });
+        
+        var t1 = performance.now();
+        console.log(`HTML for ${tablesContainerId} generated in ${(t1 - t0).toFixed(1)} ms`);
+    });
+    
+    
+    
+    
+    // ! Using `DATA.logitsTableData` to fill in the pos/neg logit tables
+    
+    function setupLogitTables(logitsTableId, tablesData, tableMetaData) {
+    
+        // Fetch table data (singular)
+        const tableData = tablesData[tableMetaData.dataKey];
+    
+        // Select the table container by its ID
+        const tablesContainer = d3.select(`#${logitsTableId}`);
+    
+        // Select the object that contains this particular table (negative or positive)
+        const tableId = `${tableMetaData.class}-${logitsTableId}`;
+        const tableContainer = tablesContainer.select(`#${tableId}`);
+        
+        // If this table container doesn't exist, create it
+        if (tableContainer.empty()) {
+            const section = tablesContainer.append("div").attr("class", tableMetaData.class);
+            section.append("h4").html(tableMetaData.title);
+            section.append("table").attr("id", tableId).attr("class", "table-left");
+        }
+    
+        // Now we can select the table by its ID, empty data, and add new data
+        const table = tablesContainer.select(`#${tableId}`);
+        table.selectAll('tr').remove();
+    
+        // Bind logits data to rows
+        const rows = table.selectAll('tr')
+            .data(tableData)
+            .enter()
+            .append('tr');
+        
+        // Append token cell
+        rows.append('td')
+            .attr('class', 'left-aligned')
+            .append('code')
+            .style('background-color', d => d.color)
+            .text(d => d.symbol);
+        
+        // Append value cell
+        rows.append('td')
+            .attr('class', 'right-aligned')
+            .text(d => d.value.toFixed(2));
+    }
+    
+    // Define some data which will tell us how to create our tables (this isn't a function of data, it's always the same)
+    var logitTablesMetaData = [
+        {title: "NEGATIVE LOGITS", dataKey: "negLogits", class: "negative"},
+        {title: "POSITIVE LOGITS", dataKey: "posLogits", class: "positive"},
+    ]
+    
+    // 'logitsTableData' is a dictionary mapping suffixes to logits table data (to make each logits table unique)
+    // We iterate over it, and create a logits table for each one
+    Object.entries(DATA.logitsTableData).forEach(([suffix, tablesData]) => {
+        var t0 = performance.now();
+    
+        // For each set of (pos / neg) table pairs, we need to empty each of them, then create them again
+        // tablesContainerId = `feature-tables-${suffix}`;
+        // setupLogitTables(logitsTableId, "negative", tableData.negLogits);
+        // setupLogitTables(logitsTableId, "positive", tableData.posLogits);
+        
+        logitsTableId = `logits-table-${suffix}`;
+        logitTablesMetaData.forEach(tableMetaData => {
+            setupLogitTables(logitsTableId, tablesData, tableMetaData);
+        });
+    
+        var t1 = performance.now();
+        console.log(`HTML for ${logitsTableId} generated in ${(t1 - t0).toFixed(1)} ms`);
+    });
+    
+    
+    
+    
+    
+    function addLineHistogram(histogramID, shapeIndex, tok, xValue) {
+        // Updates histogram with a line (if the histogram exists)
+        // shapeIndex 0 is for on-hover, 1 is for permanent line
+        if (document.getElementById(histogramID)) {
+            Plotly.relayout(histogramID, {
+                [`shapes[${shapeIndex}].x0`]: xValue,
+                [`shapes[${shapeIndex}].x1`]: xValue,
+                [`shapes[${shapeIndex}].visible`]: true,
+                [`annotations[${shapeIndex}].x`]: xValue,
+                [`annotations[${shapeIndex}].text`]: `|${tok}|<br>${xValue.toFixed(3)}`,
+                [`annotations[${shapeIndex}].visible`]: true,
+            });
+        }
+    }
+    
+    function removeLineHistogram(histogramID, shapeIndex) {
+        if (document.getElementById(histogramID)) {
+            Plotly.relayout(histogramID, {
+                [`shapes[${shapeIndex}].visible`]: false,
+                [`annotations[${shapeIndex}].visible`]: false,
+            });
+        }
+    }
+    
+    function generateTokHtmlElement(
+        parent, tok, tokID, uColor, bgColor, isBold, featAct, tokenLogit, lossEffect, posToks, posVal, negToks, negVal, permanentLine, hide, idSuffix,
+    ) {
+        // Figure out if previous token was active (this affects the construction of the tooltip)
+        let prevTokenActive = posToks.length + negToks.length > 0;
+    
+        // Create the token span (this will contain just the token, not the hoverdata)
+        let tokenSpan = parent.append("span")
+            .attr("class", "hover-text");
+    
+        // Get the histogram ids
+        let histogramActsID = `histogram-acts-${idSuffix}`;
+        let histogramLogitsID = `histogram-logits-${idSuffix}`;
+    
+        // Put actual token in the tokenSpan object (i.e. the thing we see without hovering)    
+        tokenSpan.append("span")
+            .attr("class", "token")
+            .style("background-color", bgColor)
+            .style("border-bottom", `4px solid ${uColor}`)
+            .style("font-weight", isBold ? "bold" : "normal")
+            .text(tok);
+    
+        // If hide is true, then we just show a box saying "no information was calculated for this token"
+        if (hide) {
+            // First define the tooltip div (added to the parent element, i.e. it's a sibling of the token span)
+            let tooltipHeight = 70;
+            let tooltipWidth = 150;
+            let tooltipDiv = parent.append("div")
+                .attr("class", "tooltip")
+                .style("height", tooltipHeight + "px")
+                .style("width", tooltipWidth + "px")
+                .style("font-size", "0.85em")
+                .style("white-space", "pre-wrap")
+                .style("align-items", "center")
+                .style("text-align", "center")
+                .style("padding", "15px")
+                .html("No information was calculated for this token, since you used compute_buffer=False.");
+    
+            // Add dynamic behaviour: show the tooltip on hover, and also add lines to the two histograms
+            tokenSpan.on('mouseover', function() {
+                tooltipDiv.style('display', 'flex');
+                tooltipDiv.style('position', 'fixed');
+            })
+            tokenSpan.on('mousemove', function(event) {
+                tooltipDiv.style('left', `${event.clientX - tooltipWidth / 2}px`);
+                tooltipDiv.style('top', `${event.clientY + 20}px`);
+            });
+            tokenSpan.on('mouseout', function() {
+                tooltipDiv.style('display', 'none');
+            });
+            
+        // If we're not hiding (because we only generated data for the bolded tokens), then create tooltip & add it on hover
+        } else { 
+    
+            // First define the tooltip div (added to the parent element, i.e. it's a sibling of the token span)
+            let tooltipHeight = prevTokenActive ? 270 : 160;
+            let tooltipWidth = prevTokenActive ? 350 : 250;
+            let tooltipDiv = parent.append("div")
+                .attr("class", "tooltip")
+                .style("height", tooltipHeight + "px")
+                .style("width", tooltipWidth + "px")
+                .style("align-items", "center")
+                .style("text-align", "center");
+    
+            // Next, create a table container, to contain 2 tables: one with basics (acts & loss effect), one with per-token logits
+            let tableContainer = tooltipDiv.append("div").attr("class", "table-container");
+    
+            // Creat the first table
+            let tokRow = `<td class="right-aligned">Token</td><td class="left-aligned"><code>${tok}</code> (${tokID})</td>`;
+            let featActRow = `<td class="right-aligned">Feature activation</td><td class="left-aligned">${featAct >= 0 ? '+' : ''}${featAct.toFixed(3)}</td>`;
+            let lossRow = `<td class="right-aligned">Loss contribution</td><td class="left-aligned">${lossEffect >= 0 ? '+' : ''}${lossEffect.toFixed(3)}</td>`;
+            let firstTable = tableContainer.append("table");
+            firstTable.append("tr").html(tokRow);
+            firstTable.append("tr").html(featActRow);
+            firstTable.append("tr").html(lossRow);
+            tableContainer.append("br");
+            
+            // If previous token is active, we add logit table
+            if (prevTokenActive) {
+                
+                // Create container for top & bottom logits tables
+                let logitsTableContainer = tableContainer.append("div").attr("class", "half-width-container")
+    
+                // Create the positive table, and fill it with values
+                let posLogitsTable = logitsTableContainer.append("table").attr("class", "half-width")
+                posLogitsTable.append("tr").html(`<td class="center-aligned" colspan="2">Pos logit contributions</td>`);
+                posToks.forEach((tok, index) => {
+                    posLogitsTable.append("tr").html(`
+                        <td class="right-aligned"><code>${tok}</code></td>
+                        <td class="left-aligned">${posVal[index] > 0 ? '+' : ''}${posVal[index].toFixed(3)}</td>
+                    `);
+                });
+    
+                // Create the negative table, and fill it with values
+                let negLogitsTable = logitsTableContainer.append("table").attr("class", "half-width")
+                negLogitsTable.append("tr").html(`<td class="center-aligned" colspan="2">Neg logit contributions</td>`);
+                negToks.forEach((tok, index) => {
+                    negLogitsTable.append("tr").html(`
+                        <td class="right-aligned"><code>${tok}</code></td>
+                        <td class="left-aligned">${negVal[index] > 0 ? '+' : ''}${negVal[index].toFixed(3)}</td>
+                    `);
+                });
+    
+            // If previous token is not active, we add a message instead
+            } else {
+                tableContainer.append("div")
+                    .style("font-size", "0.85em")
+                    .html("Feature not active on prev token;<br>no predictions were affected.");
+            }
+    
+            // Add dynamic behaviour: show the tooltip on hover, and also add lines to the two histograms
+            tokenSpan.on('mouseover', function() {
+                tooltipDiv.style('display', 'flex');
+                tooltipDiv.style('position', 'fixed');
+                addLineHistogram(histogramActsID, 0, tok, featAct);
+                addLineHistogram(histogramLogitsID, 0, tok, tokenLogit);
+            })
+            tokenSpan.on('mousemove', function(event) {
+                tooltipDiv.style('left', `${event.clientX - tooltipWidth / 2}px`);
+                tooltipDiv.style('top', `${event.clientY + 20}px`);
+            });
+            tokenSpan.on('mouseout', function() {
+                tooltipDiv.style('display', 'none');
+                removeLineHistogram(histogramActsID, 0);
+                removeLineHistogram(histogramLogitsID, 0);
+            });
+    
+            // Add static behaviour: if required, then show the permanent line on the histograms, as shapes[1]
+            if (permanentLine & isBold) {
+                addLineHistogram(histogramActsID, 1, tok, featAct);
+                addLineHistogram(histogramLogitsID, 1, tok, tokenLogit);
+            }
+        }
+    }
+    
+    Object.entries(DATA.tokenData).forEach(([seqGroupID, seqGroupData]) => {
+        const t0 = performance.now();
+    
+        // Find the sequence group container (this is the only thing that already exists)
+        const seqGroupContainer = d3.select(`#${seqGroupID}`);
+    
+        // Empty this container of title & all sequences
+        seqGroupContainer.selectAll('*').remove();
+    
+        // If title exists, add the title to this sequence group (we need .html not .text, because it could have <br>)
+        if ("title" in seqGroupData) {
+            seqGroupContainer.append('h4').html(seqGroupData.title);
+        }
+    
+        // Get the ID suffix for this sequence group
+        const idSuffix = seqGroupData.idSuffix;
+    
+        // Select all sequences (initially empty), and then add our sequences & bind them to the elems in seqGroupData.data
+        const seqGroup = seqGroupContainer.selectAll('.seq')
+            .data(seqGroupData.data)
+            .enter()
+            .append('div')
+            .attr('class', 'seq');
+    
+        // For each sequence, we iterate over & add all its tokens
+        seqGroup.each(function(seqData) {
+    
+            // Get `seq`, which is the individual `seq` element in seqGroup (i.e. the sequence container)
+            const seq = d3.select(this);
+    
+            // Iterate through each token data dict in `seqData`, and add this token to the sequence
+            seqData.forEach(tokData => {
+    
+                generateTokHtmlElement(
+                    seq,                                // object we'll append the token to
+                    tokData.tok,                        // string token
+                    tokData.tokID,                      // token ID (shown on hover, after PR request)
+                    tokData["uColor"] || "#fff",        // underline color (derived from loss effect)
+                    tokData["bgColor"] || "#fff",       // background color (derived from feature activation)
+                    tokData["isBold"] || false,         // is this token bolded?
+                    tokData["featAct"] || 0.0,          // feature activation at this token (used for acts histogram line)
+                    tokData["tokenLogit"] || 0.0,       // raw logit effect on this token (used for logits histogram line)
+                    tokData["lossEffect"] || 0.0,       // effect on loss (used for histogram line), if prev token active
+                    tokData["posToks"] || [],           // most-positive tokens (strings)
+                    tokData["posVal"] || [],            // most-positive token values
+                    tokData["negToks"] || [],           // most-negative tokens (strings)
+                    tokData["negVal"] || [],            // most-negative token values
+                    tokData["permanentLine"] || false,  // do we show a permanent line on histogram?
+                    tokData["hide"] || false,           // do we suppress hoverdata for this token?
+                    idSuffix,                           // suffix for the histogram ID which the hoverline will be added to
+                );
+            });
+        });
+    
+        const t1 = performance.now(); // End timing
+        console.log(`HTML for ${seqGroupID} generated in ${(t1 - t0).toFixed(1)} ms`);
+    });
+}
+
+function defineData() {
+    // Returns the data - see the docstring of the Python HTML class to understand the structure of this object.
+
+    return {"AGGDATA": {"max": [47.5, 49.5, 68.5, 61.75, 55.0, 58.75, 46.0, 53.75, 55.5, 43.25, 50.5, 20.125, 60.75, 50.75, 61.5, 49.25, 45.25, 61.75, 56.0, 67.5, 47.75, 49.75, 62.25, 60.0, 55.0, 42.75, 68.0, 56.25, 42.25, 43.75, 65.5, 59.0, 59.75, 62.0, 63.0, 57.25, 57.0, 33.5, 56.5, 42.25, 57.0, 45.75, 25.5, 58.75, 58.75, 44.5, 60.25, 48.0, 55.75, 59.0, 55.0, 51.25, 60.0, 51.0, 59.5, 46.0, 66.5, 62.75, 55.25, 60.5, 57.0, 66.5, 63.25, 58.75, 64.5, 61.25, 58.25, 59.25, 60.5, 59.0, 39.75, 51.75, 58.0, 55.5, 62.25, 64.5, 59.0, 39.0, 54.25, 50.25, 51.5, 60.75, 54.25, 58.0, 52.5, 49.5, 51.0, 60.25, 50.0, 63.25, 61.25, 46.25, 57.0, 37.5, 57.75, 45.5, 49.25, 57.75, 46.0, 54.0, 44.25, 48.0, 60.25, 57.75, 47.75, 54.75, 54.0, 56.25, 57.25, 58.25, 53.75, 55.5, 56.25, 69.0, 50.25, 69.0, 66.5, 52.75, 61.75, 33.75, 60.25, 53.5, 61.0, 59.25, 62.5, 59.5, 56.0, 58.5, 62.5, 60.75, 52.5, 58.75, 60.0, 53.75, 63.5, 47.0, 58.5, 25.625, 65.5, 52.25, 49.25, 59.75, 60.25, 62.5, 54.0, 53.75, 60.0, 62.5, 51.5, 62.0, 58.0, 58.75, 49.5, 61.25, 59.25, 58.0, 58.75, 62.25, 58.25, 61.25, 55.75, 57.25, 60.5, 65.5, 63.25, 20.625, 57.75, 61.0, 64.5, 62.0, 58.75, 58.25, 55.5, 46.5, 60.0, 60.0, 50.75, 48.75, 55.0, 58.75, 49.0, 57.75, 60.0, 62.75, 59.0, 64.5, 58.25, 57.5, 49.75, 56.5, 59.25, 55.0, 59.5, 58.75, 70.0, 54.0, 51.5, 58.5, 50.0, 59.75, 59.5, 30.625, 65.5, 59.0, 57.75, 60.5, 55.75, 57.75, 69.0, 57.75, 51.75, 53.25, 51.0, 56.75, 61.75, 59.75, 58.25, 56.25, 54.5, 60.0, 48.75, 56.0, 50.25, 59.5, 57.25, 52.0, 59.75, 59.0, 65.0, 55.25, 59.0, 46.25, 53.75, 48.0, 60.25, 34.0, 53.25, 62.0, 58.25, 68.5, 45.25, 33.5, 50.75, 60.75, 36.0, 55.75, 59.75, 53.5, 59.25, 56.0, 53.75, 55.75, 57.75, 58.75, 62.0, 60.5, 63.0, 69.5, 52.75, 57.25, 59.5, 63.0, 57.0, 52.0, 60.5, 68.5, 59.75, 43.5, 60.75, 61.75, 54.25, 25.875, 61.0, 53.0, 53.75, 49.0, 48.75, 57.5, 58.75, 60.25, 60.5, 56.75, 55.0, 59.5, 61.0, 53.25, 61.0, 62.0, 57.5, 62.75, 53.25, 55.0, 55.5, 54.75, 61.0, 60.75, 57.0, 40.25, 55.25, 54.5, 61.25, 52.0, 50.0, 59.25, 56.25, 56.25, 56.75, 62.5, 53.0, 53.5, 62.0, 55.0, 70.5, 58.25, 49.25, 56.5, 57.5, 60.0, 60.0, 62.25, 59.25, 58.0, 57.25, 57.25, 59.75, 52.5, 47.5, 63.25, 51.0, 54.75, 59.75, 54.25, 54.75, 62.5, 53.0, 57.75, 62.25, 59.75, 59.25, 50.0, 58.0, 55.75, 62.5, 51.75, 52.0, 49.0, 40.5, 53.75, 56.75, 60.75, 63.5, 59.0, 40.5, 63.25, 71.0, 58.75, 61.5, 59.25, 58.5, 67.5, 41.25, 44.75, 61.5, 28.75, 60.0, 63.0, 59.25, 53.5, 57.75, 29.75, 61.5, 56.25, 68.0, 25.375, 61.5, 55.25, 58.0, 52.5, 53.75, 68.5, 43.0, 56.0, 36.25, 32.25, 40.0, 64.5, 58.0, 56.5, 57.25, 31.625, 62.5, 57.5, 51.75, 71.0, 60.5, 61.75, 60.25, 55.25, 63.75, 55.5, 56.25, 52.25, 40.75, 59.5, 56.25, 61.25, 64.0, 47.75, 57.5, 62.5, 68.0, 58.5, 55.5, 68.5, 50.25, 53.75, 57.5, 58.5, 60.5, 65.0, 61.25, 38.5, 59.75, 55.5, 57.5, 57.0, 57.75, 58.75, 51.5, 49.25, 55.25, 54.75, 48.75, 55.5, 52.5, 51.75, 65.0, 54.75, 53.5, 64.0, 53.75, 50.5, 56.75, 61.5, 68.0, 56.0, 50.0, 55.5, 62.25, 61.25, 44.0, 58.0, 69.5, 53.0, 70.5, 55.25, 57.5, 52.0, 62.25, 48.5, 60.25, 56.25, 58.25, 61.5, 62.75, 56.75, 48.25, 57.0, 46.75, 56.5, 55.75, 64.0, 52.0, 52.75, 62.25, 62.5, 48.5, 60.75, 53.75, 67.5, 59.5, 51.0, 65.0, 61.0, 62.75, 59.25, 59.0, 60.25, 55.25, 58.0, 49.5, 55.5, 62.75, 52.0, 57.75, 61.5, 51.5, 54.0, 50.0, 48.0, 62.5, 58.75, 60.5, 60.5, 53.25, 51.75, 58.75, 62.0, 48.0, 61.0, 56.25, 57.75, 53.0, 58.75, 57.25, 58.25, 37.0, 59.5, 64.5, 59.0, 64.0, 62.25, 56.5, 59.5, 50.0, 55.25, 57.5, 46.0, 62.75, 33.0, 60.5, 59.25, 67.0, 58.0, 56.25, 57.75, 60.5, 63.5, 62.25, 49.25, 49.75, 57.75, 39.25, 50.5, 29.375, 62.75, 43.25, 57.5, 60.25, 59.0, 63.5, 57.75, 59.5, 62.0, 51.75, 49.0, 55.5, 65.5, 62.0, 64.5, 58.25, 60.0, 62.0, 63.25, 54.5, 68.0, 60.25, 56.5, 57.5, 58.25, 51.0, 50.5, 31.0, 62.75, 56.75, 62.0, 64.5, 56.25, 62.25, 57.75, 62.0, 58.0, 61.5, 61.75, 55.5, 52.75, 56.0, 55.0, 57.0, 61.75, 50.25, 46.5, 53.25, 60.0, 85.0, 38.0, 42.0, 50.5, 48.0, 44.0], "frac_nonzero": [0.00859, 0.00821, 0.0002, 0.00027, 0.00865, 0.00867, 0.00021, 0.00804, 0.00896, 0.00033, 0.00029, 0.01149, 0.00016, 0.00832, 0.00878, 0.00076, 0.00024, 0.00031, 0.0081, 0.00807, 0.00064, 0.00037, 0.00017, 0.00793, 0.00804, 0.00819, 0.00048, 0.00882, 0.00081, 0.00036, 0.0003, 0.0002, 0.00038, 0.00035, 0.00803, 0.00014, 0.00842, 0.01245, 0.00875, 0.00903, 0.00017, 0.00027, 0.01253, 0.0005, 0.00806, 0.00926, 0.00017, 0.00889, 0.00023, 0.00812, 0.00807, 0.00817, 0.00017, 0.00841, 0.0003, 0.00834, 0.00825, 0.00804, 0.00038, 0.00014, 0.00858, 0.00791, 0.00018, 0.00888, 0.00023, 0.00871, 0.00036, 0.00794, 0.00855, 0.00039, 0.00032, 0.00038, 0.0003, 0.00863, 0.00031, 0.00017, 0.00797, 0.00977, 0.00845, 0.00818, 0.00027, 8e-05, 0.00068, 0.00097, 0.0003, 0.00925, 0.00891, 0.00809, 0.00067, 0.00045, 0.00801, 0.00028, 0.00037, 0.00903, 0.00028, 0.00872, 0.00034, 0.00808, 0.00021, 0.00809, 0.00041, 0.00954, 0.00915, 0.00846, 0.00065, 0.00809, 0.00023, 0.00827, 0.00873, 0.00806, 0.00878, 0.00027, 0.00042, 0.00874, 0.00816, 0.00026, 0.0084, 0.00064, 0.00894, 0.01437, 0.00805, 0.00046, 0.00802, 0.00928, 0.00806, 0.00853, 0.00084, 0.00021, 0.0082, 0.00046, 0.00027, 0.00802, 0.00826, 0.00018, 0.00801, 0.00054, 0.00835, 0.00977, 0.00019, 0.00028, 0.0001, 0.00808, 0.00842, 0.00028, 0.00016, 0.0091, 0.00046, 0.00852, 0.00896, 0.00047, 0.00013, 0.00831, 0.00842, 0.00152, 0.00042, 0.00019, 0.00807, 0.0089, 0.00815, 0.00819, 0.00809, 0.00801, 0.00819, 0.00016, 0.00038, 0.01188, 0.00069, 0.00031, 0.00852, 0.0002, 0.00029, 0.00026, 0.00795, 0.00863, 0.00841, 0.00017, 0.00026, 0.00043, 0.00804, 0.00811, 0.00857, 0.00812, 0.00028, 0.00815, 0.00045, 0.00016, 0.00042, 0.00811, 0.00032, 0.00015, 0.00805, 0.00067, 0.00016, 0.00025, 0.00025, 0.00802, 0.00029, 0.00026, 0.00859, 0.00809, 0.00816, 0.01293, 0.00031, 0.00876, 0.00858, 0.00842, 0.00031, 0.00821, 0.00021, 0.00805, 0.00797, 0.00065, 0.00152, 0.00018, 9e-05, 0.00048, 0.00021, 0.00021, 0.00884, 0.00819, 0.008, 0.00853, 0.00111, 0.00844, 0.00801, 0.00888, 0.00873, 0.00823, 0.00844, 0.00015, 0.00807, 0.00036, 0.00049, 0.00028, 0.00016, 0.01018, 0.00037, 0.00027, 0.00814, 0.00047, 0.00046, 0.01152, 0.00027, 0.00833, 0.0088, 0.00813, 0.00825, 0.00051, 0.00018, 0.00833, 0.00019, 0.00904, 0.00837, 0.00047, 0.00927, 0.00794, 0.00822, 0.00041, 0.00106, 0.00057, 0.0002, 0.00793, 0.00803, 0.00033, 0.00041, 0.00017, 0.00813, 0.00064, 0.00804, 0.00071, 0.00844, 0.01108, 0.0086, 0.00888, 0.00811, 0.00026, 0.00834, 0.00814, 0.00024, 0.00803, 0.00037, 0.00887, 0.00833, 0.00881, 0.00806, 0.00028, 0.00879, 0.00808, 0.00031, 0.0088, 0.00066, 0.00879, 0.00947, 0.00868, 0.00802, 0.00818, 0.0004, 0.00856, 0.00036, 0.00015, 0.00854, 0.00049, 0.00025, 0.00053, 0.0088, 0.00877, 0.00025, 0.0002, 0.0089, 0.00014, 0.00021, 0.0085, 0.00876, 0.00025, 0.0084, 0.00024, 0.00014, 0.00804, 0.0088, 0.00019, 0.00818, 0.00032, 0.00018, 0.0008, 0.0006, 0.00039, 0.00048, 0.00019, 0.00044, 0.00095, 0.00814, 0.00025, 0.00875, 0.00032, 0.00042, 0.0088, 0.00058, 0.00064, 0.00025, 0.00021, 0.00833, 0.00018, 0.00024, 0.0002, 0.00815, 0.00019, 0.0004, 0.00869, 0.00031, 0.00832, 0.008, 0.00815, 0.00881, 0.00024, 0.00815, 0.00027, 0.00034, 0.00011, 0.00877, 0.00823, 0.0088, 0.00893, 0.00039, 0.01117, 0.00015, 0.00052, 0.00866, 0.00037, 0.00042, 0.01012, 0.00818, 0.00895, 0.00017, 0.00925, 0.00023, 0.00842, 0.00869, 0.0003, 0.00885, 0.00818, 0.00806, 0.00026, 0.00021, 0.00944, 0.00082, 0.00026, 0.00806, 0.00902, 0.0084, 0.01402, 0.0005, 0.00806, 0.00884, 0.00019, 0.00017, 0.0004, 0.00797, 0.00814, 0.00798, 0.0088, 0.00036, 0.00838, 0.00914, 0.00826, 0.00021, 0.0084, 0.00875, 0.0088, 0.00053, 0.00876, 0.00825, 0.00825, 0.00886, 0.00044, 0.00856, 0.00045, 0.00026, 0.00823, 0.00814, 0.00845, 0.0004, 0.00033, 0.00022, 0.00019, 0.00035, 0.00044, 0.00028, 0.00014, 0.00901, 0.00043, 0.00063, 0.00015, 0.00057, 0.00042, 0.00048, 0.00854, 0.00835, 0.00016, 0.00808, 0.00031, 0.00817, 0.00038, 0.00049, 0.00038, 0.00031, 0.00822, 0.00037, 0.00026, 0.00904, 0.00796, 0.0097, 0.00881, 0.00018, 0.00803, 0.00836, 0.0083, 0.00873, 0.00802, 0.00042, 0.00844, 0.00023, 0.00023, 0.00889, 0.00879, 0.00813, 0.00819, 0.00048, 0.00033, 0.00804, 0.00813, 0.00037, 0.00015, 0.00029, 0.00026, 0.00018, 0.00799, 0.00885, 0.00022, 0.00958, 0.00016, 0.00027, 0.00824, 0.00801, 0.00027, 0.00794, 0.00033, 0.00801, 0.0002, 0.00035, 0.00011, 0.00054, 0.00023, 0.00826, 0.00836, 0.00912, 0.00812, 7e-05, 0.00021, 0.00829, 0.00888, 0.00025, 0.00804, 0.0003, 0.00816, 0.00825, 0.00911, 0.00817, 0.00793, 0.00897, 0.00852, 0.00022, 0.00841, 0.00807, 0.00832, 0.00065, 0.00834, 0.00884, 0.00817, 0.00016, 0.00813, 0.0002, 0.00012, 0.00801, 0.00018, 0.00121, 0.00062, 0.00022, 0.00937, 0.00818, 0.00826, 0.00032, 0.00803, 0.00017, 0.00069, 0.00151, 0.00853, 0.00813, 0.00803, 0.00025, 0.00035, 0.00035, 0.00868, 0.0005, 0.00953, 0.00075, 0.00021, 0.01027, 0.00813, 0.00888, 0.00034, 0.00029, 0.00897, 0.00014, 0.00019, 0.00802, 0.00899, 0.00882, 0.00794, 0.00031, 0.00885, 0.00038, 0.00879, 0.00817, 0.00805, 0.00859, 0.00835, 0.00833, 0.00016, 0.0002, 0.00813, 0.00026, 0.00023, 0.00821, 0.00803, 0.00791, 0.00025, 0.00015, 0.00021, 0.00828, 0.00022, 0.0086, 0.00845, 0.00886, 0.00032, 0.00053, 0.00023, 0.00883, 0.00864, 0.00881, 0.00812, 0.0082, 0.00911, 0.00035, 0.00016, 0.00068, 0.01014, 0.00066, 0.00823, 0.00865, 0.00092], "skew": [], "kurtosis": []}, "DASHBOARD_DATA": {"15994": {"featureTablesData": {"0": {"neuronAlignment": [{"index": 53, "value": "+0.234", "percentageL1": "0.9%"}, {"index": 973, "value": "+0.185", "percentageL1": "0.7%"}, {"index": 1436, "value": "+0.160", "percentageL1": "0.6%"}], "correlatedNeurons": [{"index": 53, "value": "+0.046", "percentageL1": "+0.044"}, {"index": 973, "value": "+0.037", "percentageL1": "+0.038"}, {"index": 1794, "value": "+0.032", "percentageL1": "+0.025"}], "correlatedFeatures": [{"index": 15994, "value": "+0.000", "percentageL1": "+0.000"}, {"index": 9774, "value": "-0.000", "percentageL1": "+0.000"}, {"index": 1805, "value": "-0.000", "percentageL1": "+0.000"}]}}, "actsHistogramData": {"0": {"y": [377, 246, 175, 120, 91, 44, 37, 30, 28, 28, 51, 69, 76, 45, 42, 18, 22, 22, 27, 10, 8, 13, 12, 16, 25, 51, 74, 91, 87, 147, 98, 143, 122, 97, 104, 99, 107, 92, 68, 92, 69, 56, 45, 35, 41, 28, 39, 61, 16, 8], "x": [4.76656, 5.86219, 6.95781, 8.05344, 9.14906, 10.24469, 11.34031, 12.43594, 13.53156, 14.62719, 15.72281, 16.81844, 17.91406, 19.00969, 20.10531, 21.20094, 22.29656, 23.39219, 24.48781, 25.58344, 26.67906, 27.77469, 28.87031, 29.96594, 31.06157, 32.15718, 33.25281, 34.34844, 35.44406, 36.53969, 37.63531, 38.73094, 39.82656, 40.92219, 42.01781, 43.11344, 44.20906, 45.30469, 46.40031, 47.49594, 48.59156, 49.68719, 50.78281, 51.87844, 52.97406, 54.06969, 55.16531, 56.26094, 57.35656, 58.45219], "ticks": [0, 19.6, 39.2, 58.8], "colors": ["#ffcc8d", "#ffca8a", "#ffc987", "#ffc884", "#ffc681", "#ffc57e", "#ffc37b", "#ffc278", "#ffc176", "#ffc073", "#ffbf70", "#ffbd6d", "#ffbc6a", "#ffba67", "#ffb964", "#ffb861", "#ffb75f", "#ffb55c", "#ffb459", "#ffb356", "#ffb153", "#ffb050", "#ffaf4d", "#ffad4a", "#ffac47", "#ffab45", "#ffaa42", "#ffa83f", "#ffa73c", "#ffa639", "#ffa436", "#ffa333", "#ffa230", "#ffa12e", "#ff9f2b", "#ff9e28", "#ff9d25", "#ff9b22", "#ff9a1f", "#ff991c", "#ff9719", "#ff9617", "#ff9514", "#ff9411", "#ff920e", "#ff910b", "#ff9008", "#ff8e05", "#ff8d02", "#ff8c00"], "title": "ACTIVATIONS<br>DENSITY = 0.034%"}}, "logitsTableData": {"0": {"negLogits": [{"symbol": "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t", "value": -0.75, "color": "rgba(255,177,177,0.5)"}, {"symbol": "\u2581SGS", "value": -0.68, "color": "rgba(255,183,183,0.5)"}, {"symbol": "\u2581JScrollPane", "value": -0.66, "color": "rgba(255,186,186,0.5)"}, {"symbol": "\u2581GOS", "value": -0.65, "color": "rgba(255,187,187,0.5)"}, {"symbol": "\u2581Sch\u00f6n", "value": -0.65, "color": "rgba(255,187,187,0.5)"}, {"symbol": "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t", "value": -0.65, "color": "rgba(255,187,187,0.5)"}, {"symbol": "\u2581nahilalakip", "value": -0.63, "color": "rgba(255,189,189,0.5)"}, {"symbol": "\u2581JAS", "value": -0.62, "color": "rgba(255,190,190,0.5)"}, {"symbol": "\u2581Thackeray", "value": -0.62, "color": "rgba(255,190,190,0.5)"}, {"symbol": "helves", "value": -0.61, "color": "rgba(255,191,191,0.5)"}], "posLogits": [{"symbol": "\u2581units", "value": 2.45, "color": "rgba(0,0,255,0.5)"}, {"symbol": "\u2581unit", "value": 2.39, "color": "rgba(6,6,255,0.5)"}, {"symbol": "\u2581Units", "value": 2.27, "color": "rgba(19,19,255,0.5)"}, {"symbol": "\u2581Unit", "value": 2.25, "color": "rgba(21,21,255,0.5)"}, {"symbol": "units", "value": 2.23, "color": "rgba(22,22,255,0.5)"}, {"symbol": "unit", "value": 2.2, "color": "rgba(25,25,255,0.5)"}, {"symbol": "Units", "value": 2.17, "color": "rgba(29,29,255,0.5)"}, {"symbol": "\u2581UNIT", "value": 2.16, "color": "rgba(30,30,255,0.5)"}, {"symbol": "Unit", "value": 2.12, "color": "rgba(34,34,255,0.5)"}, {"symbol": "\u2581UNITS", "value": 2.03, "color": "rgba(43,43,255,0.5)"}]}}, "logitsHistogramData": {"0": {"y": [1, 7, 32, 91, 311, 999, 2698, 6294, 13306, 23190, 34818, 42819, 43625, 36553, 24344, 14525, 7247, 3185, 1203, 456, 141, 53, 26, 11, 8, 4, 8, 4, 5, 4, 5, 2, 5, 2, 0, 1, 3, 1, 1, 1, 0, 0, 0, 2, 1, 2, 3, 1, 0, 2], "x": [-0.71797, -0.65391, -0.58984, -0.52578, -0.46172, -0.39766, -0.33359, -0.26953, -0.20547, -0.14141, -0.07734, -0.01328, 0.05078, 0.11484, 0.17891, 0.24297, 0.30703, 0.37109, 0.43516, 0.49922, 0.56328, 0.62734, 0.69141, 0.75547, 0.81953, 0.88359, 0.94766, 1.01172, 1.07578, 1.13984, 1.20391, 1.26797, 1.33203, 1.39609, 1.46016, 1.52422, 1.58828, 1.65234, 1.71641, 1.78047, 1.84453, 1.90859, 1.97266, 2.03672, 2.10078, 2.16484, 2.22891, 2.29297, 2.35703, 2.42109], "ticks": [0, 0.8, 1.6, 2.4]}}, "tokenData": {"seq-group-2-0": {"data": [[{"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581while", "tokID": 2183, "tokenLogit": -0.0249, "isBold": false}, {"tok": "\u2581standards", "tokID": 10053, "tokenLogit": 0.1445, "isBold": false}, {"tok": "\u2581for", "tokID": 604, "tokenLogit": 0.0854, "isBold": false}, {"tok": "\u2581\"", "tokID": 664, "tokenLogit": 0.1387, "isBold": false}, {"tok": "units", "tokID": 28732, "tokenLogit": 2.2344, "isBold": true, "featAct": 59.0, "bgColor": "#ff8c00"}, {"tok": "\u2581with", "tokID": 675, "tokenLogit": -0.0025, "isBold": false, "featAct": 8.625, "bgColor": "#ffeeda"}, {"tok": "\u2581[", "tokID": 892, "tokenLogit": 0.1719, "isBold": false}, {"tok": "a", "tokID": 235250, "tokenLogit": 0.0579, "isBold": false}, {"tok": "\u2581MSW", "tokID": 176324, "tokenLogit": -0.2793, "isBold": false}, {"tok": "]", "tokID": 235307, "tokenLogit": 0.1221, "isBold": false}], [{"tok": "item", "tokID": 884, "tokenLogit": 0.2129, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581v", "tokID": 593, "tokenLogit": 0.2168, "isBold": false}, {"tok": "lr", "tokID": 11706, "tokenLogit": -0.1216, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "unit", "tokID": 4995, "tokenLogit": 2.2031, "isBold": true, "featAct": 59.0, "bgColor": "#ff8c00"}, {"tok": "ario", "tokID": 2820, "tokenLogit": 0.1641, "isBold": false, "featAct": 15.75, "bgColor": "#ffe0bb"}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581v", "tokID": 593, "tokenLogit": 0.2168, "isBold": false}, {"tok": "lr", "tokID": 11706, "tokenLogit": -0.1216, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}], [{"tok": "\u2581covers", "tokID": 14979, "tokenLogit": 0.3359, "isBold": false}, {"tok": "\u2581conversions", "tokID": 76005, "tokenLogit": 0.1699, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581percentage", "tokID": 12070, "tokenLogit": -0.0325, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 58.75, "bgColor": "#ff8c01"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false, "featAct": 24.125, "bgColor": "#ffd097"}, {"tok": "\u2581measurement", "tokID": 13384, "tokenLogit": 0.3477, "isBold": false, "featAct": 11.25, "bgColor": "#ffe9cf"}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581time", "tokID": 1069, "tokenLogit": 0.3008, "isBold": false}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}], [{"tok": "aligned", "tokID": 1933, "tokenLogit": 0.0306, "isBold": false}, {"tok": "}$$", "tokID": 142029, "tokenLogit": -0.0923, "isBold": false}, {"tok": "\u2581Then", "tokID": 5040, "tokenLogit": -0.0334, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 58.5, "bgColor": "#ff8d02"}, {"tok": "\u2581vector", "tokID": 4301, "tokenLogit": 0.1758, "isBold": false, "featAct": 7.5, "bgColor": "#fff1df"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581magnetization", "tokID": 158394, "tokenLogit": -0.0825, "isBold": false}, {"tok": "\u2581that", "tokID": 674, "tokenLogit": 0.3008, "isBold": false}], [{"tok": "item", "tokID": 884, "tokenLogit": 0.2129, "isBold": false}, {"tok": "\u2581*", "tokID": 649, "tokenLogit": 0.4004, "isBold": false}, {"tok": "\u2581v", "tokID": 593, "tokenLogit": 0.2168, "isBold": false}, {"tok": "lr", "tokID": 11706, "tokenLogit": -0.1216, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "unit", "tokID": 4995, "tokenLogit": 2.2031, "isBold": true, "featAct": 58.25, "bgColor": "#ff8d03"}, {"tok": "ario", "tokID": 2820, "tokenLogit": 0.1641, "isBold": false, "featAct": 14.4375, "bgColor": "#ffe3c1"}, {"tok": "\u2581-", "tokID": 728, "tokenLogit": 0.0427, "isBold": false}, {"tok": "\u2581v", "tokID": 593, "tokenLogit": 0.2168, "isBold": false}, {"tok": "lr", "tokID": 11706, "tokenLogit": -0.1216, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}], [{"tok": "B", "tokID": 235305, "tokenLogit": 0.0114, "isBold": false}, {"tok": "'=", "tokID": 123418, "tokenLogit": -0.0605, "isBold": false}, {"tok": "BS", "tokID": 5577, "tokenLogit": -0.085, "isBold": false}, {"tok": "$.", "tokID": 3306, "tokenLogit": -0.0183, "isBold": false}, {"tok": "\u2581The", "tokID": 714, "tokenLogit": 0.1445, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 58.25, "bgColor": "#ff8d03"}, {"tok": "\u2581vector", "tokID": 4301, "tokenLogit": 0.1758, "isBold": false, "featAct": 9.1875, "bgColor": "#ffedd8"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581magnetization", "tokID": 158394, "tokenLogit": -0.0825, "isBold": false}, {"tok": "\u2581at", "tokID": 696, "tokenLogit": 0.3242, "isBold": false}], [{"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581max", "tokID": 2968, "tokenLogit": 0.0884, "isBold": false}, {"tok": "=", "tokID": 235293, "tokenLogit": -0.0105, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 58.0, "bgColor": "#ff8e04"}, {"tok": "=\"", "tokID": 627, "tokenLogit": 0.0684, "isBold": false, "featAct": 13.5, "bgColor": "#ffe5c5"}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "\")", "tokID": 1388, "tokenLogit": -0.0192, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "\u2581\u2581\u2581\u2581", "tokID": 141, "tokenLogit": 0.063, "isBold": false}], [{"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\n\n", "tokID": 109, "tokenLogit": -0.0679, "isBold": false}, {"tok": "We", "tokID": 1734, "tokenLogit": -0.1221, "isBold": false}, {"tok": "\u2581square", "tokID": 7800, "tokenLogit": 0.0933, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 58.0, "bgColor": "#ff8e04"}, {"tok": "\u2581using", "tokID": 2177, "tokenLogit": 0.0688, "isBold": false, "featAct": 5.7188, "bgColor": "#fff4e7"}, {"tok": "\u2581ultra", "tokID": 13842, "tokenLogit": 0.1875, "isBold": false}, {"tok": "products", "tokID": 14512, "tokenLogit": 0.0859, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581We", "tokID": 1448, "tokenLogit": 0.0243, "isBold": false}], [{"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "\u2581\u2581", "tokID": 139, "tokenLogit": 0.2041, "isBold": false}, {"tok": "v", "tokID": 235272, "tokenLogit": -0.0167, "isBold": false}, {"tok": "lr", "tokID": 11706, "tokenLogit": -0.1216, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "unit", "tokID": 4995, "tokenLogit": 2.2031, "isBold": true, "featAct": 57.75, "bgColor": "#ff8e05"}, {"tok": "ario", "tokID": 2820, "tokenLogit": 0.1641, "isBold": false, "featAct": 15.9375, "bgColor": "#ffe0ba"}, {"tok": "\u2581numeric", "tokID": 44803, "tokenLogit": 0.3047, "isBold": false}, {"tok": "(", "tokID": 235278, "tokenLogit": -0.0664, "isBold": false}, {"tok": "7", "tokID": 235324, "tokenLogit": 0.1216, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}], [{"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581max", "tokID": 2968, "tokenLogit": 0.0884, "isBold": false}, {"tok": "=", "tokID": 235293, "tokenLogit": -0.0105, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 57.5, "bgColor": "#ff8f06"}, {"tok": "=\"", "tokID": 627, "tokenLogit": 0.0684, "isBold": false, "featAct": 15.9375, "bgColor": "#ffe0ba"}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "\")", "tokID": 1388, "tokenLogit": -0.0192, "isBold": false}, {"tok": "=", "tokID": 235293, "tokenLogit": -0.0105, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}], [{"tok": "4", "tokID": 235310, "tokenLogit": 0.0515, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581What", "tokID": 2439, "tokenLogit": 0.0898, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 57.25, "bgColor": "#ff8f07"}, {"tok": "\u2581digit", "tokID": 22926, "tokenLogit": 0.4258, "isBold": false, "featAct": 6.7812, "bgColor": "#fff2e2"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581c", "tokID": 498, "tokenLogit": 0.209, "isBold": false}, {"tok": "?", "tokID": 235336, "tokenLogit": -0.0986, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}], [{"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "\u2581\u2581", "tokID": 139, "tokenLogit": 0.2041, "isBold": false}, {"tok": "v", "tokID": 235272, "tokenLogit": -0.0167, "isBold": false}, {"tok": "lr", "tokID": 11706, "tokenLogit": -0.1216, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "unit", "tokID": 4995, "tokenLogit": 2.2031, "isBold": true, "featAct": 57.25, "bgColor": "#ff8f07"}, {"tok": "ario", "tokID": 2820, "tokenLogit": 0.1641, "isBold": false, "featAct": 15.6875, "bgColor": "#ffe0bb"}, {"tok": "\u2581numeric", "tokID": 44803, "tokenLogit": 0.3047, "isBold": false}, {"tok": "(", "tokID": 235278, "tokenLogit": -0.0664, "isBold": false}, {"tok": "7", "tokID": 235324, "tokenLogit": 0.1216, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}], [{"tok": "\"", "tokID": 235281, "tokenLogit": -0.0654, "isBold": false}, {"tok": "dataType", "tokID": 34824, "tokenLogit": 0.0503, "isBold": false}, {"tok": "Name", "tokID": 1232, "tokenLogit": 0.2393, "isBold": false}, {"tok": "\":", "tokID": 1192, "tokenLogit": -0.1094, "isBold": false}, {"tok": "\u2581\"", "tokID": 664, "tokenLogit": 0.1387, "isBold": false}, {"tok": "Unit", "tokID": 8032, "tokenLogit": 2.125, "isBold": true, "featAct": 57.25, "bgColor": "#ff8f07"}, {"tok": "Of", "tokID": 3179, "tokenLogit": 0.0996, "isBold": false, "featAct": 30.625, "bgColor": "#ffc37b"}, {"tok": "Measure", "tokID": 20270, "tokenLogit": 0.1572, "isBold": false, "featAct": 18.0, "bgColor": "#ffdcb1"}, {"tok": "Reporting", "tokID": 51147, "tokenLogit": -0.1777, "isBold": false}, {"tok": "Text", "tokID": 1637, "tokenLogit": -0.0884, "isBold": false}, {"tok": "\",", "tokID": 824, "tokenLogit": -0.0432, "isBold": false}], [{"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581What", "tokID": 2439, "tokenLogit": 0.0898, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 57.25, "bgColor": "#ff8f07"}, {"tok": "\u2581digit", "tokID": 22926, "tokenLogit": 0.4258, "isBold": false, "featAct": 8.625, "bgColor": "#ffeeda"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "9", "tokID": 235315, "tokenLogit": -0.1069, "isBold": false}, {"tok": "/", "tokID": 235283, "tokenLogit": 0.063, "isBold": false}], [{"tok": "\u2581data", "tokID": 1423, "tokenLogit": 0.1475, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581providing", "tokID": 9151, "tokenLogit": 0.1895, "isBold": false}, {"tok": "\u2581numbers", "tokID": 5968, "tokenLogit": 0.1787, "isBold": false}, {"tok": "\u2581with", "tokID": 675, "tokenLogit": -0.0025, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 57.0, "bgColor": "#ff9008"}, {"tok": "\u2581etc", "tokID": 3687, "tokenLogit": 0.0918, "isBold": false}, {"tok": ".,", "tokID": 1173, "tokenLogit": 0.0562, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581other", "tokID": 1156, "tokenLogit": 0.106, "isBold": false}, {"tok": "\u2581cases", "tokID": 4381, "tokenLogit": 0.1016, "isBold": false}], [{"tok": "df", "tokID": 3442, "tokenLogit": -0.1982, "isBold": false}, {"tok": "['", "tokID": 1829, "tokenLogit": -0.0486, "isBold": false}, {"tok": "Day", "tokID": 7366, "tokenLogit": 0.0474, "isBold": false}, {"tok": "\u2581created", "tokID": 5483, "tokenLogit": 0.0962, "isBold": false}, {"tok": "'],", "tokID": 7525, "tokenLogit": -0.2334, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 57.0, "bgColor": "#ff9008"}, {"tok": "='", "tokID": 2875, "tokenLogit": -0.0093, "isBold": false, "featAct": 13.0625, "bgColor": "#ffe6c7"}, {"tok": "D", "tokID": 235299, "tokenLogit": 0.0039, "isBold": false}, {"tok": "')", "tokID": 1685, "tokenLogit": -0.0598, "isBold": false}, {"tok": "\n\n", "tokID": 109, "tokenLogit": -0.0679, "isBold": false}, {"tok": "to", "tokID": 511, "tokenLogit": 0.1816, "isBold": false}], [{"tok": "z", "tokID": 235306, "tokenLogit": 0.0544, "isBold": false}, {"tok": ").", "tokID": 846, "tokenLogit": 0.1021, "isBold": false}, {"tok": "\u2581What", "tokID": 2439, "tokenLogit": 0.0898, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 57.0, "bgColor": "#ff9008"}, {"tok": "\u2581digit", "tokID": 22926, "tokenLogit": 0.4258, "isBold": false, "featAct": 6.6562, "bgColor": "#fff2e3"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "3", "tokID": 235304, "tokenLogit": 0.0359, "isBold": false}, {"tok": "/", "tokID": 235283, "tokenLogit": 0.063, "isBold": false}], [{"tok": "\u2581or", "tokID": 689, "tokenLogit": 0.2305, "isBold": false}, {"tok": "\u2581how", "tokID": 1368, "tokenLogit": 0.0381, "isBold": false}, {"tok": "\u2581there", "tokID": 1104, "tokenLogit": -0.1895, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581no", "tokID": 793, "tokenLogit": -0.0242, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 57.0, "bgColor": "#ff9008"}, {"tok": "\u2581(", "tokID": 591, "tokenLogit": 0.1416, "isBold": false}, {"tok": "dp", "tokID": 11267, "tokenLogit": -0.0903, "isBold": false}, {"tok": "/", "tokID": 235283, "tokenLogit": 0.063, "isBold": false}, {"tok": "sp", "tokID": 801, "tokenLogit": -0.0845, "isBold": false}, {"tok": ")", "tokID": 235275, "tokenLogit": 0.0825, "isBold": false}], [{"tok": "\",", "tokID": 824, "tokenLogit": -0.0432, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "\u2581\u2581", "tokID": 139, "tokenLogit": 0.2041, "isBold": false}, {"tok": "\"", "tokID": 235281, "tokenLogit": -0.0654, "isBold": false}, {"tok": "units", "tokID": 28732, "tokenLogit": 2.2344, "isBold": true, "featAct": 57.0, "bgColor": "#ff9008"}, {"tok": "\":", "tokID": 1192, "tokenLogit": -0.1094, "isBold": false}, {"tok": "\u2581\"", "tokID": 664, "tokenLogit": 0.1387, "isBold": false, "featAct": 11.625, "bgColor": "#ffe8cd"}, {"tok": "mm", "tokID": 1961, "tokenLogit": -0.0376, "isBold": false}, {"tok": "\",", "tokID": 824, "tokenLogit": -0.0432, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}], [{"tok": "3", "tokID": 235304, "tokenLogit": 0.0359, "isBold": false}, {"tok": ").", "tokID": 846, "tokenLogit": 0.1021, "isBold": false}, {"tok": "\u2581What", "tokID": 2439, "tokenLogit": 0.0898, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 57.0, "bgColor": "#ff9008"}, {"tok": "\u2581digit", "tokID": 22926, "tokenLogit": 0.4258, "isBold": false, "featAct": 6.625, "bgColor": "#fff2e3"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581(-", "tokID": 15958, "tokenLogit": 0.1011, "isBold": false}, {"tok": "4", "tokID": 235310, "tokenLogit": 0.0515, "isBold": false}, {"tok": "5", "tokID": 235308, "tokenLogit": 0.0457, "isBold": false}]], "idSuffix": "0", "title": "TOP ACTIVATIONS<br>MAX = 59.000"}, "seq-group-2-1": {"data": [[{"tok": "\u2581plane", "tokID": 10599, "tokenLogit": 0.0537, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581mapped", "tokID": 46227, "tokenLogit": -0.165, "isBold": false}, {"tok": "\u2581unto", "tokID": 19975, "tokenLogit": 0.3926, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 53.0, "bgColor": "#ff981a"}, {"tok": "\u2581circle", "tokID": 11698, "tokenLogit": 0.1729, "isBold": false}, {"tok": "\u2581by", "tokID": 731, "tokenLogit": 0.0952, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581conformal", "tokID": 162192, "tokenLogit": -0.0598, "isBold": false}, {"tok": "\u2581mapping", "tokID": 21037, "tokenLogit": -0.1226, "isBold": false}], [{"tok": "\u2581change", "tokID": 2669, "tokenLogit": -0.0201, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581specs", "tokID": 42505, "tokenLogit": -0.0286, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581Unit", "tokID": 11754, "tokenLogit": 2.25, "isBold": true, "featAct": 54.0, "bgColor": "#ff9515"}, {"tok": "\u2581Tests", "tokID": 23786, "tokenLogit": 0.2285, "isBold": false, "featAct": 7.8125, "bgColor": "#fff0de"}, {"tok": "\u2581are", "tokID": 708, "tokenLogit": -0.0239, "isBold": false}, {"tok": "\u2581supposed", "tokID": 11460, "tokenLogit": -0.082, "isBold": false}, {"tok": "\u2581to", "tokID": 577, "tokenLogit": 0.209, "isBold": false}, {"tok": "\u2581be", "tokID": 614, "tokenLogit": 0.1445, "isBold": false}], [{"tok": "8", "tokID": 235321, "tokenLogit": 0.0432, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "What", "tokID": 1841, "tokenLogit": -0.0371, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 55.5, "bgColor": "#ff930f"}, {"tok": "\u2581digit", "tokID": 22926, "tokenLogit": 0.4258, "isBold": false, "featAct": 7.25, "bgColor": "#fff1e0"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "2", "tokID": 235284, "tokenLogit": 0.1631, "isBold": false}], [{"tok": "\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581", "tokID": 149, "tokenLogit": -0.1562, "isBold": false}, {"tok": "``", "tokID": 1848, "tokenLogit": -0.1445, "isBold": false}, {"tok": "'[", "tokID": 108718, "tokenLogit": 0.0981, "isBold": false}, {"tok": "cut", "tokID": 7748, "tokenLogit": 0.015, "isBold": false}, {"tok": "[", "tokID": 235309, "tokenLogit": 0.0249, "isBold": false}, {"tok": "unit", "tokID": 4995, "tokenLogit": 2.2031, "isBold": true, "featAct": 53.75, "bgColor": "#ff9616"}, {"tok": "]][", "tokID": 85466, "tokenLogit": -0.2949, "isBold": false}, {"tok": "+", "tokID": 235340, "tokenLogit": 0.0498, "isBold": false}, {"tok": "z", "tokID": 235306, "tokenLogit": 0.0544, "isBold": false}, {"tok": "]'", "tokID": 72555, "tokenLogit": 0.011, "isBold": false}, {"tok": "``", "tokID": 1848, "tokenLogit": -0.1445, "isBold": false}], [{"tok": "df", "tokID": 3442, "tokenLogit": -0.1982, "isBold": false}, {"tok": "['", "tokID": 1829, "tokenLogit": -0.0486, "isBold": false}, {"tok": "Day", "tokID": 7366, "tokenLogit": 0.0474, "isBold": false}, {"tok": "\u2581created", "tokID": 5483, "tokenLogit": 0.0962, "isBold": false}, {"tok": "'],", "tokID": 7525, "tokenLogit": -0.2334, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 57.0, "bgColor": "#ff9008"}, {"tok": "='", "tokID": 2875, "tokenLogit": -0.0093, "isBold": false, "featAct": 13.0625, "bgColor": "#ffe6c7"}, {"tok": "D", "tokID": 235299, "tokenLogit": 0.0039, "isBold": false}, {"tok": "')", "tokID": 1685, "tokenLogit": -0.0598, "isBold": false}, {"tok": "\n\n", "tokID": 109, "tokenLogit": -0.0679, "isBold": false}, {"tok": "to", "tokID": 511, "tokenLogit": 0.1816, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 53.100 - 59.000<br>CONTAINS 0.002%"}, "seq-group-2-2": {"data": [[{"tok": "\u2581things", "tokID": 2652, "tokenLogit": -0.0046, "isBold": false}, {"tok": "\u2581that", "tokID": 674, "tokenLogit": 0.3008, "isBold": false}, {"tok": "\u2581can", "tokID": 798, "tokenLogit": 0.1523, "isBold": false}, {"tok": "\u2581define", "tokID": 11810, "tokenLogit": 0.125, "isBold": false}, {"tok": "\u2581a", "tokID": 476, "tokenLogit": 0.0615, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 51.5, "bgColor": "#ff9a20"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false, "featAct": 19.625, "bgColor": "#ffd9aa"}, {"tok": "\u2581length", "tokID": 4191, "tokenLogit": 0.4434, "isBold": false, "featAct": 6.5625, "bgColor": "#fff2e3"}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}, {"tok": "\u2581mass", "tokID": 5182, "tokenLogit": 0.3027, "isBold": false}, {"tok": "\u2581(", "tokID": 591, "tokenLogit": 0.1416, "isBold": false}], [{"tok": "\u2581M", "tokID": 595, "tokenLogit": 0.293, "isBold": false}, {"tok": "WC", "tokID": 26544, "tokenLogit": 0.0286, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": false, "featAct": 43.75, "bgColor": "#ffaa42"}, {"tok": "\u2581based", "tokID": 3482, "tokenLogit": 0.2061, "isBold": false}, {"tok": "\u2581on", "tokID": 611, "tokenLogit": 0.0454, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 48.25, "bgColor": "#ffa12e"}, {"tok": "\u2581MSW", "tokID": 176324, "tokenLogit": -0.2793, "isBold": false}, {"tok": "\u2581capacity", "tokID": 7924, "tokenLogit": 0.2168, "isBold": false}, {"tok": "\u2581for", "tokID": 604, "tokenLogit": 0.0854, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581purpose", "tokID": 6187, "tokenLogit": 0.2617, "isBold": false}], [{"tok": "\u2581articles", "tokID": 9449, "tokenLogit": 0.1001, "isBold": false}, {"tok": "\u2581for", "tokID": 604, "tokenLogit": 0.0854, "isBold": false}, {"tok": "\u2581which", "tokID": 948, "tokenLogit": 0.1904, "isBold": false}, {"tok": "\u2581only", "tokID": 1297, "tokenLogit": 0.105, "isBold": false}, {"tok": "\u2581low", "tokID": 3178, "tokenLogit": -0.1475, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 48.75, "bgColor": "#ffa02c"}, {"tok": "\u2581costs", "tokID": 6331, "tokenLogit": 0.2197, "isBold": false}, {"tok": "\u2581are", "tokID": 708, "tokenLogit": -0.0239, "isBold": false}, {"tok": "\u2581acceptable", "tokID": 22012, "tokenLogit": -0.1196, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}], [{"tok": "equivalent", "tokID": 99623, "tokenLogit": 0.3262, "isBold": false}, {"tok": "\u2581Cr", "tokID": 17209, "tokenLogit": -0.1025, "isBold": false}, {"tok": "\u2581atoms", "tokID": 25204, "tokenLogit": 0.1572, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 51.75, "bgColor": "#ff9a1f"}, {"tok": "\u2581cell", "tokID": 3027, "tokenLogit": 0.4238, "isBold": false, "featAct": 6.9375, "bgColor": "#fff1e1"}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581The", "tokID": 714, "tokenLogit": 0.1445, "isBold": false}, {"tok": "\u2581strength", "tokID": 7268, "tokenLogit": 0.2393, "isBold": false}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}], [{"tok": "I", "tokID": 235285, "tokenLogit": -0.0986, "isBold": false}, {"tok": "^", "tokID": 235393, "tokenLogit": -0.0767, "isBold": false}, {"tok": "e", "tokID": 235249, "tokenLogit": -0.0327, "isBold": false}, {"tok": "$", "tokID": 235323, "tokenLogit": 0.0098, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 48.0, "bgColor": "#ffa12f"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false, "featAct": 13.375, "bgColor": "#ffe5c5"}, {"tok": "\u2581$", "tokID": 697, "tokenLogit": 0.3105, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}, {"tok": "^{-", "tokID": 8051, "tokenLogit": -0.1191, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 47.200 - 53.100<br>CONTAINS 0.003%"}, "seq-group-2-3": {"data": [[{"tok": "creature", "tokID": 141787, "tokenLogit": 0.2812, "isBold": false}, {"tok": "->", "tokID": 949, "tokenLogit": 0.0879, "isBold": false}, {"tok": "Remove", "tokID": 13681, "tokenLogit": -0.0503, "isBold": false}, {"tok": "Flag", "tokID": 14146, "tokenLogit": 0.166, "isBold": false}, {"tok": "(", "tokID": 235278, "tokenLogit": -0.0664, "isBold": false}, {"tok": "UNIT", "tokID": 28632, "tokenLogit": 2.0156, "isBold": true, "featAct": 45.5, "bgColor": "#ffa63a"}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false, "featAct": 15.625, "bgColor": "#ffe1bc"}, {"tok": "DYNAMIC", "tokID": 143844, "tokenLogit": 0.1299, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "FLAGS", "tokID": 42177, "tokenLogit": -0.0552, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}], [{"tok": "\u2581LD", "tokID": 36624, "tokenLogit": 0.0037, "isBold": false}, {"tok": "OS", "tokID": 2055, "tokenLogit": -0.3164, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581middle", "tokID": 7185, "tokenLogit": 0.0603, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 45.25, "bgColor": "#ffa73b"}, {"tok": "\u2581cell", "tokID": 3027, "tokenLogit": 0.4238, "isBold": false, "featAct": 6.9688, "bgColor": "#fff1e1"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581Au", "tokID": 2328, "tokenLogit": 0.043, "isBold": false}, {"tok": "-", "tokID": 235290, "tokenLogit": -0.0025, "isBold": false}], [{"tok": "\u2581=", "tokID": 589, "tokenLogit": 0.1196, "isBold": false}, {"tok": "\u2581modify", "tokID": 18567, "tokenLogit": -0.0576, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "get", "tokID": 818, "tokenLogit": -0.0118, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "units", "tokID": 28732, "tokenLogit": 2.2344, "isBold": true, "featAct": 43.5, "bgColor": "#ffaa43"}, {"tok": "(", "tokID": 235278, "tokenLogit": -0.0664, "isBold": false}, {"tok": "get", "tokID": 818, "tokenLogit": -0.0118, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "units", "tokID": 28732, "tokenLogit": 2.2344, "isBold": false, "featAct": 36.0, "bgColor": "#ffb963"}, {"tok": ")", "tokID": 235275, "tokenLogit": 0.0825, "isBold": false}], [{"tok": "\u2581which", "tokID": 948, "tokenLogit": 0.1904, "isBold": false}, {"tok": "\u2581describes", "tokID": 19306, "tokenLogit": 0.0126, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581force", "tokID": 5097, "tokenLogit": 0.2773, "isBold": false}, {"tok": "\u2581per", "tokID": 842, "tokenLogit": 0.0923, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 45.25, "bgColor": "#ffa73b"}, {"tok": "\u2581length", "tokID": 4191, "tokenLogit": 0.4434, "isBold": false, "featAct": 6.4062, "bgColor": "#fff3e4"}, {"tok": "\u2581exerted", "tokID": 80562, "tokenLogit": 0.1025, "isBold": false}, {"tok": "\u2581by", "tokID": 731, "tokenLogit": 0.0952, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581filament", "tokID": 70715, "tokenLogit": 0.1221, "isBold": false}], [{"tok": ":", "tokID": 235292, "tokenLogit": 0.104, "isBold": false}, {"tok": "\u2581[", "tokID": 892, "tokenLogit": 0.1719, "isBold": false}, {"tok": "Proto", "tokID": 12966, "tokenLogit": 0.1099, "isBold": false}, {"tok": "3", "tokID": 235304, "tokenLogit": 0.0359, "isBold": false}, {"tok": "Arena", "tokID": 64090, "tokenLogit": 0.3047, "isBold": false}, {"tok": "Unit", "tokID": 8032, "tokenLogit": 2.125, "isBold": true, "featAct": 44.5, "bgColor": "#ffa83e"}, {"tok": "test", "tokID": 2195, "tokenLogit": 0.0845, "isBold": false}, {"tok": "_", "tokID": 235298, "tokenLogit": 0.0425, "isBold": false}, {"tok": "Foreign", "tokID": 25937, "tokenLogit": 0.1592, "isBold": false}, {"tok": "Enum", "tokID": 15004, "tokenLogit": 0.0767, "isBold": false}, {"tok": "]", "tokID": 235307, "tokenLogit": 0.1221, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 41.300 - 47.200<br>CONTAINS 0.005%"}, "seq-group-2-4": {"data": [[{"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}, {"tok": "\u2581infectious", "tokID": 50956, "tokenLogit": -0.0105, "isBold": false}, {"tok": "\u2581waste", "tokID": 9007, "tokenLogit": 0.0422, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 39.5, "bgColor": "#ffb254"}, {"tok": "\u2581combust", "tokID": 102553, "tokenLogit": -0.1089, "isBold": false}, {"tok": "ing", "tokID": 574, "tokenLogit": -0.1738, "isBold": false}, {"tok": "\u2581commercial", "tokID": 8597, "tokenLogit": -0.0864, "isBold": false}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}, {"tok": "\u2581industrial", "tokID": 9365, "tokenLogit": -0.0742, "isBold": false}], [{"tok": "\u2581are", "tokID": 708, "tokenLogit": -0.0239, "isBold": false}, {"tok": "\u2581present", "tokID": 2835, "tokenLogit": 0.125, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581The", "tokID": 714, "tokenLogit": 0.1445, "isBold": false}, {"tok": "\u2581closure", "tokID": 26470, "tokenLogit": 0.2461, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 38.0, "bgColor": "#ffb55b"}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581guided", "tokID": 31856, "tokenLogit": -0.1191, "isBold": false}, {"tok": "\u2581displace", "tokID": 160070, "tokenLogit": -0.0361, "isBold": false}, {"tok": "ably", "tokID": 6694, "tokenLogit": 0.063, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}], [{"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": false, "featAct": 43.25, "bgColor": "#ffab44"}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581new", "tokID": 888, "tokenLogit": 0.0874, "isBold": false}, {"tok": "\u2581small", "tokID": 2301, "tokenLogit": 0.1289, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 39.25, "bgColor": "#ffb255"}, {"tok": "\u2581category", "tokID": 9701, "tokenLogit": 0.332, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "2", "tokID": 235284, "tokenLogit": 0.1631, "isBold": false}, {"tok": "\u2581\u2581", "tokID": 139, "tokenLogit": 0.2041, "isBold": false}], [{"tok": "\u2581currently", "tokID": 7094, "tokenLogit": 0.2773, "isBold": false}, {"tok": "\u2581grouped", "tokID": 51249, "tokenLogit": 0.1035, "isBold": false}, {"tok": "\u2581with", "tokID": 675, "tokenLogit": -0.0025, "isBold": false}, {"tok": "\u2581large", "tokID": 2910, "tokenLogit": 0.2451, "isBold": false}, {"tok": "\u2581existing", "tokID": 7881, "tokenLogit": 0.126, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 38.5, "bgColor": "#ffb458"}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581\u2581", "tokID": 139, "tokenLogit": 0.2041, "isBold": false}, {"tok": "Since", "tokID": 12496, "tokenLogit": 0.0947, "isBold": false}, {"tok": "\u2581large", "tokID": 2910, "tokenLogit": 0.2451, "isBold": false}, {"tok": "\u2581existing", "tokID": 7881, "tokenLogit": 0.126, "isBold": false}], [{"tok": "\u2581kernels", "tokID": 91071, "tokenLogit": 0.2129, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581fluid", "tokID": 14721, "tokenLogit": 0.2324, "isBold": false}, {"tok": "ized", "tokID": 2012, "tokenLogit": -0.0189, "isBold": false}, {"tok": "\u2581bed", "tokID": 3609, "tokenLogit": -0.0018, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 40.25, "bgColor": "#ffb151"}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581For", "tokID": 1699, "tokenLogit": 0.1221, "isBold": false}, {"tok": "\u2581this", "tokID": 736, "tokenLogit": 0.0297, "isBold": false}, {"tok": "\u2581purpose", "tokID": 6187, "tokenLogit": 0.2617, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 35.400 - 41.300<br>CONTAINS 0.006%"}, "seq-group-2-5": {"data": [[{"tok": "\u2581backed", "tokID": 34584, "tokenLogit": -0.1191, "isBold": false}, {"tok": "\u2581up", "tokID": 908, "tokenLogit": 0.2002, "isBold": false}, {"tok": "\u2581from", "tokID": 774, "tokenLogit": 0.1235, "isBold": false}, {"tok": "\u2581one", "tokID": 974, "tokenLogit": 0.1963, "isBold": false}, {"tok": "\u2581control", "tokID": 2582, "tokenLogit": 0.3535, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 31.625, "bgColor": "#ffc176"}, {"tok": "\u2581to", "tokID": 577, "tokenLogit": 0.209, "isBold": false}, {"tok": "\u2581another", "tokID": 2550, "tokenLogit": 0.1011, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "In", "tokID": 886, "tokenLogit": 0.062, "isBold": false}], [{"tok": "/", "tokID": 235283, "tokenLogit": 0.063, "isBold": false}, {"tok": "day", "tokID": 1311, "tokenLogit": 0.0287, "isBold": false}, {"tok": "\u2581(\"", "tokID": 9390, "tokenLogit": 0.0791, "isBold": false}, {"tok": "regional", "tokID": 66837, "tokenLogit": -0.126, "isBold": false}, {"tok": "\u2581existing", "tokID": 7881, "tokenLogit": 0.126, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 34.5, "bgColor": "#ffbc6a"}, {"tok": "\"),", "tokID": 6756, "tokenLogit": -0.0579, "isBold": false}, {"tok": "\u2581were", "tokID": 1049, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581based", "tokID": 3482, "tokenLogit": 0.2061, "isBold": false}, {"tok": "\u2581on", "tokID": 611, "tokenLogit": 0.0454, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}], [{"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}, {"tok": "\u2581industrial", "tokID": 9365, "tokenLogit": -0.0742, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 34.25, "bgColor": "#ffbc6b"}, {"tok": "\u2581dot", "tokID": 12846, "tokenLogit": 0.3242, "isBold": false}, {"tok": "\u2581this", "tokID": 736, "tokenLogit": 0.0297, "isBold": false}, {"tok": "\u2581city", "tokID": 3413, "tokenLogit": 0.1914, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581technically", "tokID": 40807, "tokenLogit": -0.0879, "isBold": false}], [{"tok": "\u2581processing", "tokID": 10310, "tokenLogit": -0.0938, "isBold": false}, {"tok": "\u2581executed", "tokID": 22315, "tokenLogit": 0.0366, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581arithmetic", "tokID": 53888, "tokenLogit": 0.1738, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 33.25, "bgColor": "#ffbe6f"}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581scheduled", "tokID": 17221, "tokenLogit": 0.0608, "isBold": false}, {"tok": "\u2581to", "tokID": 577, "tokenLogit": 0.209, "isBold": false}, {"tok": "\u2581be", "tokID": 614, "tokenLogit": 0.1445, "isBold": false}, {"tok": "\u2581bra", "tokID": 2984, "tokenLogit": 0.2119, "isBold": false}], [{"tok": "\u2581each", "tokID": 1853, "tokenLogit": 0.21, "isBold": false}, {"tok": "\u2581device", "tokID": 6064, "tokenLogit": 0.7227, "isBold": false}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581main", "tokID": 1872, "tokenLogit": 0.2617, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": true, "featAct": 32.5, "bgColor": "#ffbf72"}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581on", "tokID": 611, "tokenLogit": 0.0454, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581tuner", "tokID": 115016, "tokenLogit": 0.0265, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 29.500 - 35.400<br>CONTAINS 0.003%"}, "seq-group-2-6": {"data": [[{"tok": "\u2581beta", "tokID": 18820, "tokenLogit": -0.0364, "isBold": false}, {"tok": "(", "tokID": 235278, "tokenLogit": -0.0664, "isBold": false}, {"tok": "C", "tokID": 235288, "tokenLogit": 0.0869, "isBold": false}, {"tok": ")-", "tokID": 7817, "tokenLogit": -0.0057, "isBold": false}, {"tok": "sub", "tokID": 1558, "tokenLogit": 0.3359, "isBold": false}, {"tok": "units", "tokID": 28732, "tokenLogit": 2.2344, "isBold": true, "featAct": 27.5, "bgColor": "#ffc988"}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581human", "tokID": 3515, "tokenLogit": 0.0879, "isBold": false}, {"tok": "pro", "tokID": 1010, "tokenLogit": 0.0219, "isBold": false}, {"tok": "state", "tokID": 2626, "tokenLogit": 0.2451, "isBold": false}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}], [{"tok": "\u2581time", "tokID": 1069, "tokenLogit": 0.3008, "isBold": false}, {"tok": "\u2581*", "tokID": 649, "tokenLogit": 0.4004, "isBold": false}, {"tok": "\u03c4", "tokID": 235476, "tokenLogit": 0.124, "isBold": false}, {"tok": "*.", "tokID": 23016, "tokenLogit": 0.1172, "isBold": false}, {"tok": "\u2581This", "tokID": 1417, "tokenLogit": 0.1133, "isBold": false}, {"tok": "\u2581unitary", "tokID": 110383, "tokenLogit": 0.9375, "isBold": true, "featAct": 23.75, "bgColor": "#ffd198"}, {"tok": "\u2581process", "tokID": 2185, "tokenLogit": 0.1387, "isBold": false}, {"tok": "\u2581has", "tokID": 919, "tokenLogit": 0.2578, "isBold": false}, {"tok": "\u2581no", "tokID": 793, "tokenLogit": -0.0242, "isBold": false}, {"tok": "\u2581heat", "tokID": 6719, "tokenLogit": 0.0508, "isBold": false}, {"tok": "\u2581contribution", "tokID": 15707, "tokenLogit": -0.0996, "isBold": false}], [{"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581ocean", "tokID": 13940, "tokenLogit": 0.1562, "isBold": false}, {"tok": "ica", "tokID": 1820, "tokenLogit": 0.1016, "isBold": false}, {"tok": "*.", "tokID": 23016, "tokenLogit": 0.1172, "isBold": false}, {"tok": "\u2581Sub", "tokID": 4284, "tokenLogit": 0.3613, "isBold": false}, {"tok": "units", "tokID": 28732, "tokenLogit": 2.2344, "isBold": true, "featAct": 26.75, "bgColor": "#ffcb8b"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false, "featAct": 6.9688, "bgColor": "#fff1e1"}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581iron", "tokID": 8456, "tokenLogit": 0.0508, "isBold": false}, {"tok": "-", "tokID": 235290, "tokenLogit": -0.0025, "isBold": false}, {"tok": "containing", "tokID": 21587, "tokenLogit": 0.0206, "isBold": false}], [{"tok": ")-", "tokID": 7817, "tokenLogit": -0.0057, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "The", "tokID": 651, "tokenLogit": -0.0654, "isBold": false}, {"tok": "\u2581allowable", "tokID": 87338, "tokenLogit": -0.1328, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": false, "featAct": 54.75, "bgColor": "#ff9412"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": true, "featAct": 27.375, "bgColor": "#ffca89"}, {"tok": "\u2581prosecution", "tokID": 40111, "tokenLogit": -0.1025, "isBold": false}, {"tok": "\u2581for", "tokID": 604, "tokenLogit": 0.0854, "isBold": false}, {"tok": "\u2581assa", "tokID": 65310, "tokenLogit": 0.0806, "isBold": false}, {"tok": "ul", "tokID": 601, "tokenLogit": 0.2012, "isBold": false}, {"tok": "tive", "tokID": 1377, "tokenLogit": 0.166, "isBold": false}], [{"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "2", "tokID": 235284, "tokenLogit": 0.1631, "isBold": false}, {"tok": "\u2581pH", "tokID": 20367, "tokenLogit": -0.0391, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": true, "featAct": 28.0, "bgColor": "#ffc886"}, {"tok": ")", "tokID": 235275, "tokenLogit": 0.0825, "isBold": false}, {"tok": "\u2581were", "tokID": 1049, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581observed", "tokID": 8674, "tokenLogit": 0.0645, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581Evaluation", "tokID": 22835, "tokenLogit": -0.0532, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 23.600 - 29.500<br>CONTAINS 0.001%"}, "seq-group-2-7": {"data": [[{"tok": "\u2581account", "tokID": 3185, "tokenLogit": 0.1455, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "<bos>", "tokID": 2, "tokenLogit": 0.0304, "isBold": false}, {"tok": "Mutations", "tokID": 233506, "tokenLogit": 0.0327, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581subunits", "tokID": 146791, "tokenLogit": 1.1641, "isBold": true, "featAct": 23.25, "bgColor": "#ffd29b"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false, "featAct": 6.2812, "bgColor": "#fff3e4"}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581Escherichia", "tokID": 127785, "tokenLogit": -0.2148, "isBold": false}, {"tok": "\u2581coli", "tokID": 35017, "tokenLogit": 0.4102, "isBold": false}, {"tok": "\u2581twin", "tokID": 23843, "tokenLogit": 0.1699, "isBold": false}], [{"tok": "\u2581interval", "tokID": 15133, "tokenLogit": 0.3828, "isBold": false}, {"tok": "\u2581that", "tokID": 674, "tokenLogit": 0.3008, "isBold": false}, {"tok": "\u2581did", "tokID": 1498, "tokenLogit": 0.0258, "isBold": false}, {"tok": "\u2581not", "tokID": 780, "tokenLogit": 0.0479, "isBold": false}, {"tok": "\u2581span", "tokID": 14664, "tokenLogit": 0.0737, "isBold": false}, {"tok": "\u2581unity", "tokID": 25099, "tokenLogit": 0.8711, "isBold": true, "featAct": 21.375, "bgColor": "#ffd6a3"}, {"tok": "\u2581were", "tokID": 1049, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581considered", "tokID": 5604, "tokenLogit": -0.1875, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581thresholds", "tokID": 83273, "tokenLogit": 0.0023, "isBold": false}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}], [{"tok": "\"),", "tokID": 6756, "tokenLogit": -0.0579, "isBold": false}, {"tok": "\u2581q", "tokID": 4036, "tokenLogit": 0.1094, "isBold": false}, {"tok": "{", "tokID": 235282, "tokenLogit": -0.0815, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581\u2581", "tokID": 149, "tokenLogit": -0.1562, "isBold": false}, {"tok": "unittest", "tokID": 51568, "tokenLogit": 0.7656, "isBold": true, "featAct": 18.25, "bgColor": "#ffdbb0"}, {"tok": "\u2581{", "tokID": 612, "tokenLogit": 0.0815, "isBold": false}, {"tok": "\u2581static", "tokID": 2022, "tokenLogit": 0.125, "isBold": false}, {"tok": "\u2581assert", "tokID": 24450, "tokenLogit": -0.0942, "isBold": false}, {"tok": "(", "tokID": 235278, "tokenLogit": -0.0664, "isBold": false}, {"tok": "false", "tokID": 3813, "tokenLogit": -0.293, "isBold": false}], [{"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581Miami", "tokID": 22301, "tokenLogit": -0.0869, "isBold": false}, {"tok": "\u2581Marlins", "tokID": 205365, "tokenLogit": -0.1553, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581re", "tokID": 582, "tokenLogit": 0.0281, "isBold": false}, {"tok": "unit", "tokID": 4995, "tokenLogit": 2.2031, "isBold": true, "featAct": 19.75, "bgColor": "#ffd9aa"}, {"tok": "ing", "tokID": 574, "tokenLogit": -0.1738, "isBold": false}, {"tok": "\u2581him", "tokID": 1357, "tokenLogit": -0.1191, "isBold": false}, {"tok": "\u2581with", "tokID": 675, "tokenLogit": -0.0025, "isBold": false}, {"tok": "\u2581his", "tokID": 926, "tokenLogit": 0.1582, "isBold": false}, {"tok": "\u2581former", "tokID": 5730, "tokenLogit": 0.0339, "isBold": false}], [{"tok": "\\]", "tokID": 663, "tokenLogit": -0.0835, "isBold": false}, {"tok": ")", "tokID": 235275, "tokenLogit": 0.0825, "isBold": false}, {"tok": "\u2581was", "tokID": 729, "tokenLogit": 0.0596, "isBold": false}, {"tok": "\u2581set", "tokID": 1142, "tokenLogit": 0.4902, "isBold": false}, {"tok": "\u2581to", "tokID": 577, "tokenLogit": 0.209, "isBold": false}, {"tok": "\u2581unity", "tokID": 25099, "tokenLogit": 0.8711, "isBold": true, "featAct": 17.75, "bgColor": "#ffdcb2"}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581previous", "tokID": 4509, "tokenLogit": -0.0535, "isBold": false}, {"tok": "\u2581procedure", "tokID": 10286, "tokenLogit": 0.0767, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 17.700 - 23.600<br>CONTAINS 0.002%"}, "seq-group-2-8": {"data": [[{"tok": "\u2581with", "tokID": 675, "tokenLogit": -0.0025, "isBold": false}, {"tok": "\u2581Unity", "tokID": 11823, "tokenLogit": 0.8047, "isBold": false, "featAct": 15.5, "bgColor": "#ffe1bc"}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "\u2581Again", "tokID": 13511, "tokenLogit": -0.0479, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581Unity", "tokID": 11823, "tokenLogit": 0.8047, "isBold": true, "featAct": 15.0625, "bgColor": "#ffe2be"}, {"tok": "VS", "tokID": 19227, "tokenLogit": 0.0302, "isBold": false}, {"tok": "\u2581will", "tokID": 877, "tokenLogit": 0.0124, "isBold": false}, {"tok": "\u2581further", "tokID": 4024, "tokenLogit": -0.1152, "isBold": false}, {"tok": "\u2581enhance", "tokID": 14915, "tokenLogit": -0.1582, "isBold": false}, {"tok": "\u2581this", "tokID": 736, "tokenLogit": 0.0297, "isBold": false}], [{"tok": "\u2581as", "tokID": 685, "tokenLogit": 0.1021, "isBold": false}, {"tok": "\u2581your", "tokID": 861, "tokenLogit": -0.0025, "isBold": false}, {"tok": "\u2581code", "tokID": 3409, "tokenLogit": 0.2217, "isBold": false}, {"tok": "\u2581editor", "tokID": 10476, "tokenLogit": 0.168, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581Unity", "tokID": 11823, "tokenLogit": 0.8047, "isBold": true, "featAct": 16.0, "bgColor": "#ffe0ba"}, {"tok": "\u2581via", "tokID": 3998, "tokenLogit": 0.2578, "isBold": false}, {"tok": "\u2581Edit", "tokID": 18438, "tokenLogit": 0.2021, "isBold": false}, {"tok": "->", "tokID": 949, "tokenLogit": 0.0879, "isBold": false}, {"tok": "Preferences", "tokID": 27801, "tokenLogit": -0.2617, "isBold": false}, {"tok": "->", "tokID": 949, "tokenLogit": 0.0879, "isBold": false}], [{"tok": "\u2581recombinant", "tokID": 99795, "tokenLogit": 0.0505, "isBold": false}, {"tok": "\u2581version", "tokID": 3797, "tokenLogit": 0.1572, "isBold": false}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581catalytic", "tokID": 82442, "tokenLogit": -0.0649, "isBold": false}, {"tok": "\u2581subunit", "tokID": 112319, "tokenLogit": 1.1484, "isBold": true, "featAct": 14.4375, "bgColor": "#ffe3c1"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581enzyme", "tokID": 33883, "tokenLogit": 0.3008, "isBold": false}, {"tok": "\u2581serine", "tokID": 216458, "tokenLogit": 0.0913, "isBold": false}, {"tok": "/", "tokID": 235283, "tokenLogit": 0.063, "isBold": false}], [{"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "4", "tokID": 235310, "tokenLogit": 0.0515, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}, {"tok": "S", "tokID": 235277, "tokenLogit": 0.0121, "isBold": false}, {"tok": "\u2581subunit", "tokID": 112319, "tokenLogit": 1.1484, "isBold": true, "featAct": 17.5, "bgColor": "#ffddb4"}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581which", "tokID": 948, "tokenLogit": 0.1904, "isBold": false}, {"tok": "\u2581in", "tokID": 575, "tokenLogit": 0.1855, "isBold": false}, {"tok": "\u2581concert", "tokID": 20227, "tokenLogit": 0.1768, "isBold": false}, {"tok": "\u2581with", "tokID": 675, "tokenLogit": -0.0025, "isBold": false}], [{"tok": "\u2581on", "tokID": 611, "tokenLogit": 0.0454, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581latest", "tokID": 7776, "tokenLogit": -0.126, "isBold": false}, {"tok": "\u2581version", "tokID": 3797, "tokenLogit": 0.1572, "isBold": false}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581Unity", "tokID": 11823, "tokenLogit": 0.8047, "isBold": true, "featAct": 16.375, "bgColor": "#ffdfb8"}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581so", "tokID": 712, "tokenLogit": 0.2041, "isBold": false}, {"tok": "\u2581we", "tokID": 783, "tokenLogit": 0.0488, "isBold": false}, {"tok": "\u2581can", "tokID": 798, "tokenLogit": 0.1523, "isBold": false}, {"tok": "\u2581get", "tokID": 947, "tokenLogit": 0.0986, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 11.800 - 17.700<br>CONTAINS 0.002%"}, "seq-group-2-9": {"data": [[{"tok": "'=", "tokID": 123418, "tokenLogit": -0.0605, "isBold": false}, {"tok": "BS", "tokID": 5577, "tokenLogit": -0.085, "isBold": false}, {"tok": "$.", "tokID": 3306, "tokenLogit": -0.0183, "isBold": false}, {"tok": "\u2581The", "tokID": 714, "tokenLogit": 0.1445, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": false, "featAct": 58.25, "bgColor": "#ff8d03"}, {"tok": "\u2581vector", "tokID": 4301, "tokenLogit": 0.1758, "isBold": true, "featAct": 9.1875, "bgColor": "#ffedd8"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581magnetization", "tokID": 158394, "tokenLogit": -0.0825, "isBold": false}, {"tok": "\u2581at", "tokID": 696, "tokenLogit": 0.3242, "isBold": false}, {"tok": "\u2581every", "tokID": 1535, "tokenLogit": 0.1602, "isBold": false}], [{"tok": "2", "tokID": 235284, "tokenLogit": 0.1631, "isBold": false}, {"tok": "B", "tokID": 235305, "tokenLogit": 0.0114, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581a", "tokID": 476, "tokenLogit": 0.0615, "isBold": false}, {"tok": "\u2581unit", "tokID": 4982, "tokenLogit": 2.3906, "isBold": false, "featAct": 54.75, "bgColor": "#ff9412"}, {"tok": "\u2581cell", "tokID": 3027, "tokenLogit": 0.4238, "isBold": true, "featAct": 7.5312, "bgColor": "#fff1df"}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581selected", "tokID": 6410, "tokenLogit": 0.252, "isBold": false}, {"tok": "\u2581for", "tokID": 604, "tokenLogit": 0.0854, "isBold": false}, {"tok": "\u2581er", "tokID": 1123, "tokenLogit": 0.016, "isBold": false}, {"tok": "asing", "tokID": 4476, "tokenLogit": -0.0635, "isBold": false}], [{"tok": "\u2581resting", "tokID": 34626, "tokenLogit": 0.0304, "isBold": false}, {"tok": "\u2581membrane", "tokID": 21475, "tokenLogit": 0.1157, "isBold": false}, {"tok": "\u2581potentials", "tokID": 65629, "tokenLogit": -0.041, "isBold": false}, {"tok": "\u2581(", "tokID": 591, "tokenLogit": 0.1416, "isBold": false}, {"tok": "N", "tokID": 235300, "tokenLogit": 0.2236, "isBold": false}, {"tok": "its", "tokID": 1218, "tokenLogit": 0.2236, "isBold": true, "featAct": 8.375, "bgColor": "#ffefdb"}, {"tok": "che", "tokID": 864, "tokenLogit": 0.0066, "isBold": false}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}, {"tok": "\u2581Paulus", "tokID": 105843, "tokenLogit": 0.1602, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581[@", "tokID": 218259, "tokenLogit": -0.1025, "isBold": false}], [{"tok": "\u2581construction", "tokID": 6584, "tokenLogit": 0.0284, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581\"", "tokID": 664, "tokenLogit": 0.1387, "isBold": false}, {"tok": "express", "tokID": 15839, "tokenLogit": 0.1289, "isBold": false}, {"tok": "io", "tokID": 536, "tokenLogit": -0.1328, "isBold": false}, {"tok": "\u2581uni", "tokID": 2877, "tokenLogit": 0.6016, "isBold": true, "featAct": 6.4062, "bgColor": "#fff3e4"}, {"tok": "us", "tokID": 553, "tokenLogit": 0.1406, "isBold": false}, {"tok": "\u2581est", "tokID": 1455, "tokenLogit": 0.0649, "isBold": false}, {"tok": "\u2581ex", "tokID": 698, "tokenLogit": 0.019, "isBold": false}, {"tok": "clus", "tokID": 42964, "tokenLogit": 0.2168, "isBold": false}, {"tok": "io", "tokID": 536, "tokenLogit": -0.1328, "isBold": false}], [{"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": false}, {"tok": "What", "tokID": 1841, "tokenLogit": -0.0371, "isBold": false}, {"tok": "\u2581is", "tokID": 603, "tokenLogit": 0.2656, "isBold": false}, {"tok": "\u2581the", "tokID": 573, "tokenLogit": -0.063, "isBold": false}, {"tok": "\u2581units", "tokID": 7845, "tokenLogit": 2.4531, "isBold": false, "featAct": 56.75, "bgColor": "#ff9009"}, {"tok": "\u2581digit", "tokID": 22926, "tokenLogit": 0.4258, "isBold": true, "featAct": 7.3125, "bgColor": "#fff1e0"}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "2", "tokID": 235284, "tokenLogit": 0.1631, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 5.900 - 11.800<br>CONTAINS 0.006%"}, "seq-group-2-10": {"data": [[{"tok": "\u2581makers", "tokID": 35509, "tokenLogit": 0.0287, "isBold": false}, {"tok": "pace", "tokID": 1678, "tokenLogit": 0.1475, "isBold": false}, {"tok": "\u2581(", "tokID": 591, "tokenLogit": 0.1416, "isBold": false}, {"tok": "ref", "tokID": 2153, "tokenLogit": -0.0293, "isBold": false}, {"tok": "\u2581hackers", "tokID": 90061, "tokenLogit": -0.4336, "isBold": false}, {"tok": "pace", "tokID": 1678, "tokenLogit": 0.1475, "isBold": true}, {"tok": ")", "tokID": 235275, "tokenLogit": 0.0825, "isBold": false}, {"tok": "\u2581that", "tokID": 674, "tokenLogit": 0.3008, "isBold": false}, {"tok": "\u2581focuses", "tokID": 31381, "tokenLogit": 0.3086, "isBold": false}, {"tok": "\u2581on", "tokID": 611, "tokenLogit": 0.0454, "isBold": false}, {"tok": "\u2581providing", "tokID": 9151, "tokenLogit": 0.1895, "isBold": false}], [{"tok": "]", "tokID": 235307, "tokenLogit": 0.1221, "isBold": false}, {"tok": "\u2581->", "tokID": 3978, "tokenLogit": 0.1021, "isBold": false}, {"tok": "\u2581[", "tokID": 892, "tokenLogit": 0.1719, "isBold": false}, {"tok": "b", "tokID": 235268, "tokenLogit": -0.0114, "isBold": false}, {"tok": "]", "tokID": 235307, "tokenLogit": 0.1221, "isBold": false}, {"tok": "\n", "tokID": 108, "tokenLogit": -0.0791, "isBold": true}, {"tok": "on", "tokID": 477, "tokenLogit": 0.127, "isBold": false}, {"tok": "\u2581map", "tokID": 4403, "tokenLogit": 0.0095, "isBold": false}, {"tok": "(", "tokID": 235278, "tokenLogit": -0.0664, "isBold": false}, {"tok": "f", "tokID": 235266, "tokenLogit": -0.106, "isBold": false}, {"tok": ",", "tokID": 235269, "tokenLogit": -0.0635, "isBold": false}], [{"tok": "stasy", "tokID": 91808, "tokenLogit": 0.3125, "isBold": false}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}, {"tok": "\u2581cannabis", "tokID": 37351, "tokenLogit": -0.0172, "isBold": false}, {"tok": "\u2581use", "tokID": 1281, "tokenLogit": 0.2314, "isBold": false}, {"tok": "\u2581were", "tokID": 1049, "tokenLogit": -0.0635, "isBold": false}, {"tok": "\u2581significantly", "tokID": 12879, "tokenLogit": 0.0559, "isBold": true}, {"tok": "\u2581related", "tokID": 5678, "tokenLogit": 0.1118, "isBold": false}, {"tok": "\u2581to", "tokID": 577, "tokenLogit": 0.209, "isBold": false}, {"tok": "\u2581poorer", "tokID": 77679, "tokenLogit": -0.0476, "isBold": false}, {"tok": "\u2581episodic", "tokID": 212833, "tokenLogit": 0.2266, "isBold": false}, {"tok": "\u2581memory", "tokID": 6884, "tokenLogit": -0.0106, "isBold": false}], [{"tok": "\u2581walls", "tokID": 11756, "tokenLogit": 0.1074, "isBold": false}, {"tok": "\u2581(", "tokID": 591, "tokenLogit": 0.1416, "isBold": false}, {"tok": "6", "tokID": 235318, "tokenLogit": 0.1934, "isBold": false}, {"tok": "7", "tokID": 235324, "tokenLogit": 0.1216, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": false}, {"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": true}, {"tok": "%)", "tokID": 8722, "tokenLogit": -0.1074, "isBold": false}, {"tok": "\u2581and", "tokID": 578, "tokenLogit": 0.1836, "isBold": false}, {"tok": "\u2581\"", "tokID": 664, "tokenLogit": 0.1387, "isBold": false}, {"tok": "contamination", "tokID": 140583, "tokenLogit": -0.125, "isBold": false}, {"tok": "\u2581of", "tokID": 576, "tokenLogit": 0.377, "isBold": false}], [{"tok": "1", "tokID": 235274, "tokenLogit": 0.1279, "isBold": false}, {"tok": "5", "tokID": 235308, "tokenLogit": 0.0457, "isBold": false}, {"tok": "\u2581to", "tokID": 577, "tokenLogit": 0.209, "isBold": false}, {"tok": "\u2581", "tokID": 235248, "tokenLogit": 0.2578, "isBold": false}, {"tok": "3", "tokID": 235304, "tokenLogit": 0.0359, "isBold": false}, {"tok": ".", "tokID": 235265, "tokenLogit": 0.1162, "isBold": true}, {"tok": "3", "tokID": 235304, "tokenLogit": 0.0359, "isBold": false}, {"tok": "3", "tokID": 235304, "tokenLogit": 0.0359, "isBold": false}, {"tok": "8", "tokID": 235321, "tokenLogit": 0.0432, "isBold": false}, {"tok": ")", "tokID": 235275, "tokenLogit": 0.0825, "isBold": false}, {"tok": "0", "tokID": 235276, "tokenLogit": 0.2051, "isBold": false}]], "idSuffix": "0", "title": "INTERVAL 0.000 - 5.900<br>CONTAINS 99.971%"}}}}};
+}
+
+</script>
