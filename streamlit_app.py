@@ -55,7 +55,9 @@ def get_sae_probe_cosine_similarities(sae_width, layer, sae_l0, letter):
     )
     return np.load(path)["arr_0"].tolist()
 
-
+@st.cache_data()
+def load_top_feat_precision_recall():
+    return pd.read_parquet("data/top_feat_precision_recall.parquet")
 @st.cache_data
 def load_k_sparse_probe_stats():
     return pd.read_parquet("data/k_sparse_results.parquet")
@@ -93,6 +95,22 @@ def is_canonical_sae(sae_width, layer, sae_l0):
             7: 69,
             8: 71,
             9: 73,
+            10: 77,
+            11: 80,
+            12: 82,
+            13: 84,
+            14: 84,
+            15: 78,
+            16: 78,
+            17: 77,
+            18: 74,
+            19: 73,
+            20: 71,
+            21: 70,
+            22: 72,
+            23: 75,
+            24: 73,
+            25: 116,
         },
         65000: {
             0: 73,
@@ -105,6 +123,22 @@ def is_canonical_sae(sae_width, layer, sae_l0):
             7: 107,
             8: 111,
             9: 118,
+            10: 128,
+            11: 70,
+            12: 72,
+            13: 75,
+            14: 73,
+            15: 127,
+            16: 128,
+            17: 125,
+            18: 116,
+            19: 115,
+            20: 114,
+            21: 111,
+            22: 116,
+            23: 123,
+            24: 124,
+            25: 93,
         },
     }
 
