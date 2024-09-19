@@ -1,7 +1,7 @@
 import os
 import shutil
 
-source_dir="/Users/hardik/Downloads/split_features"
+source_dir="/Users/hardik/Downloads/v2_feats"
 dest_dir="/Users/hardik/coding/streamlit/blank-app/data/non_canonical_dashboards"
 
 
