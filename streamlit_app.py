@@ -6,6 +6,8 @@ import numpy as np
 import plotly.graph_objects as go
 import html
 from streamlit_plotly_events import plotly_events
+from plotly.subplots import make_subplots
+
 
 st.set_page_config(layout="wide")
 
@@ -378,6 +380,105 @@ def plot_k_sparse_f1_scores(probe_stats):
     )
 
     return fig
+
+def plot_combined_precision_recall(df):
+    fig = make_subplots(
+        rows=1,
+        cols=3,
+        subplot_titles=("Precision vs L0", "Recall vs L0", "Precision vs Recall"),
+    )
+
+    # Precision vs L0
+    colors = ["#1f77b4", "#ff7f0e"]
+    width_color_map = {16000: colors[0], 65000: colors[1]}
+    fig.add_trace(
+        go.Scatter(
+            x=df["sae_l0"],
+            y=df["precision_sae_top_0"],
+            mode="markers",
+            marker=dict(
+                size=8,
+                color=[width_color_map[width] for width in df["sae_width"]],
+            ),
+            text=[
+                f"Layer: {layer}<br>Width: {width}<br>L0: {l0}"
+                for layer, width, l0 in zip(df["layer"], df["sae_width"], df["sae_l0"])
+            ],
+            hoverinfo="text+y",
+        ),
+        row=1,
+        col=1,
+    )
+
+    # Recall vs L0
+    fig.add_trace(
+        go.Scatter(
+            x=df["sae_l0"],
+            y=df["recall_sae_top_0"],
+            mode="markers",
+            marker=dict(
+                size=8,
+                color=[width_color_map[width] for width in df["sae_width"]],
+            ),
+            text=[
+                f"Layer: {layer}<br>Width: {width}<br>L0: {l0}"
+                for layer, width, l0 in zip(df["layer"], df["sae_width"], df["sae_l0"])
+            ],
+            hoverinfo="text+y",
+        ),
+        row=1,
+        col=2,
+    )
+
+    # Precision vs Recall
+    min_l0 = df["sae_l0"].min()
+    max_l0 = df["sae_l0"].max()
+
+    def norm(x):
+        return ((x - min_l0) / (max_l0 - min_l0)) ** 0.5
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["precision_sae_top_0"],
+            y=df["recall_sae_top_0"],
+            mode="markers",
+            marker=dict(
+                size=8,
+                color=[norm(l0) for l0 in df["sae_l0"]],
+                colorscale="cividis",
+                colorbar=dict(
+                    title=dict(text="L0", side="right"),
+                    tickvals=[0, 0.5, 1],
+                    ticktext=[
+                        f"{min_l0:.0f}",
+                        f"{((min_l0 + max_l0) / 2):.0f}",
+                        f"{max_l0:.0f}",
+                    ],
+                ),
+                showscale=True,
+            ),
+            text=[
+                f"Layer: {layer}<br>Width: {width}<br>L0: {l0}"
+                for layer, width, l0 in zip(df["layer"], df["sae_width"], df["sae_l0"])
+            ],
+            hoverinfo="text",
+        ),
+        row=1,
+        col=3,
+    )
+
+    fig.update_layout(
+        title=dict(
+            text="Main SAE Latent Precision and Recall Plots", font=dict(size=24)
+        ),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        showlegend=False,
+        hovermode="closest",
+    )
+
+    return fig
+
 
 def initialize_tasks():
     if "tasks" not in st.session_state:
@@ -805,8 +906,22 @@ def feature_absorption_explorer():
             "Comparison of main SAE split latent and Linear Probe classification performance"
         )
 
+        with st.expander(
+            "You can compare the precision and recall of the main SAE latent averaged across all letters, for all SAE widths and L0s.",
+            expanded=True,
+        ):
+            pr_data = load_top_feat_precision_recall()
+            pr_data = (
+                pr_data.groupby(["sae_width", "sae_l0", "layer"])
+                .agg({"precision_sae_top_0": "mean", "recall_sae_top_0": "mean"})
+                .reset_index()
+            )
+
+            combined_fig = plot_combined_precision_recall(pr_data)
+            st.plotly_chart(combined_fig, use_container_width=True)
+
         st.write(
-            f"Comparison of classification performance when using the main SAE latent ({top_sae}) or the linear probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
+            f"Here we show the comparison of classification performance when using the main SAE latent ({top_sae}) from SAE width {selected_sae_width} and SAE L0 {selected_sae_l0} with the linear probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
         )
 
         col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
