@@ -250,7 +250,7 @@ def plot_sae_probe_cosine_similarities(similarities, split_latents, absorbing_la
 
     fig.update_layout(
         title=dict(
-            text="SAE Latents & LR Probe Cosine Similarities", font=dict(size=24)
+            text="SAE Latents & Linear Probe Cosine Similarities", font=dict(size=24)
         ),
         xaxis_title="Latent Index",
         yaxis_title="Cosine Similarity",
@@ -356,8 +356,8 @@ def initialize_tasks():
             },
             {
                 "id": "compare_metrics",
-                "description": "Compare the performance of the main SAE latent vs. the LR probe",
-                "hint": 'Check the "Comparison of main SAE split latent and LR probe performance" section',
+                "description": "Compare the performance of the main SAE latent vs. the Linear Probe",
+                "hint": 'Check the "Comparison of main SAE split latent and Linear Probe performance" section',
                 "completed": False,
             },
             {
@@ -744,13 +744,13 @@ def feature_absorption_explorer():
             "1. We first identify k feature splits for the given first-letter latent using a k-sparse probe."
         )
         st.write(
-            "2. We then find false-negative tokens that all k feature-split SAE latents fail to activate on, but which a logistic regression (LR) probe correctly classifies."
+            "2. We then find false-negative tokens that all k feature-split SAE latents fail to activate on, but which a linear probe correctly classifies."
         )
         st.write(
             "3. For these tokens, we run an integrated-gradients ablation experiment to find the most causally important SAE latents for the spelling of that token."
         )
         st.write(
-            "4. We consider feature absorption to have occurred if the SAE latent receiving the largest negative magnitude ablation effect has a cosine similarity with the LR probe above 0.025, and its ablation effect is larger by at least 1.0 than the second highest ablation effect."
+            "4. We consider feature absorption to have occurred if the SAE latent receiving the largest negative magnitude ablation effect has a cosine similarity with the linear probe above 0.025, and its ablation effect is larger by at least 1.0 than the second highest ablation effect."
         )
         st.write(
             "It's important to note that this approach may not capture all instances of feature absorption, such as cases where multiple latents absorb the feature together or where the main latents continue to activate but very weakly."
@@ -767,10 +767,12 @@ def feature_absorption_explorer():
 
         top_sae = probe_stats["split_feats"].iloc[0][0]
 
-        st.subheader("Comparison of main SAE split latent and LR probe performance")
+        st.subheader(
+            "Comparison of main SAE split latent and Linear Probe classification performance"
+        )
 
         st.write(
-            f"Comparison of classification performance when using the main SAE latent ({top_sae}) or the logistic regression (LR) probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
+            f"Comparison of classification performance when using the main SAE latent ({top_sae}) or the linear probe at predicting first letter '{selected_letter}' (ignoring case) from model's activation at layer {selected_layer}:"
         )
 
         col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
@@ -779,14 +781,14 @@ def feature_absorption_explorer():
         col2.metric("SAE Recall", f"{recall_sae:.3f}")
         col3.metric("SAE F1 Score", f"{f1_sae:.3f}")
 
-        col5.metric("LR Probe Precision", f"{precision_probe:.3f}")
-        col6.metric("LR Probe Recall", f"{recall_probe:.3f}")
-        col7.metric("LR Probe F1 Score", f"{f1_probe:.3f}")
+        col5.metric("Linear Probe Precision", f"{precision_probe:.3f}")
+        col6.metric("Linear Probe Recall", f"{recall_probe:.3f}")
+        col7.metric("Linear Probe F1 Score", f"{f1_probe:.3f}")
 
         st.subheader("Cosine Similarities")
 
         st.write(
-            "We observe that in most cases, the SAE latents that we categorize as split based on k-sparse probing also have a high cosine similarity to the LR probe."
+            "We observe that in most cases, the SAE latents that we categorize as split based on k-sparse probing also have a high cosine similarity to the linear probe."
         )
 
         fig_cosine = plot_sae_probe_cosine_similarities(
