@@ -832,7 +832,8 @@ def feature_absorption_explorer():
 
         st.write(
             "This app aims to demonstrate that feature absorption is a phenomenon that occurs and should be considered when interpreting SAE latents. "
-            "Our metrics for classifying where feature splitting and feature absorption happen are imperfect, and we don't claim the results are exhaustive."
+            "We only test on 20% of the vocabulary (the test set of linear probes we train) and "
+            "our metrics for classifying where feature splitting and feature absorption happen are imperfect, so we don't claim the results are exhaustive. "
             "Consider them as an existence proof of a problematic behavior."
         )
 
