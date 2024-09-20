@@ -832,8 +832,7 @@ def feature_absorption_explorer():
 
         st.write(
             "This app aims to demonstrate that feature absorption is a phenomenon that occurs and should be considered when interpreting SAE latents. "
-            "We only test on 20% of the vocabulary (the test set of linear probes we train) and "
-            "our metrics for classifying where feature splitting and feature absorption happen are imperfect, so we don't claim the results are exhaustive. "
+            "Our metrics for classifying where feature splitting and feature absorption happen are imperfect, so we don't claim the results are exhaustive. "
             "Consider them as an existence proof of a problematic behavior."
         )
 
@@ -938,7 +937,8 @@ def feature_absorption_explorer():
         st.subheader("Cosine Similarities")
 
         st.write(
-            "We observe that in most cases, the SAE latents that we categorize as split based on k-sparse probing also have a high cosine similarity to the linear probe."
+            "We observe that in most cases, the SAE latents that we categorize as split based on k-sparse probing also have a high cosine similarity to the linear probe. "
+            "Note we only test absorption on 20% of the vocabulary (the test set of linear probes we train) so not all absorbing latents will be shown on this plot and below."
         )
 
         fig_cosine = plot_sae_probe_cosine_similarities(
