@@ -908,7 +908,7 @@ def feature_absorption_explorer():
 
         with st.expander(
             "You can compare the precision and recall of the main SAE latent averaged across all letters, for all SAE widths and L0s.",
-            expanded=True,
+            expanded=False,
         ):
             pr_data = load_top_feat_precision_recall()
             pr_data = (
