@@ -814,7 +814,7 @@ def feature_absorption_explorer():
     with st.expander("What is feature absorption?", expanded=True):
         st.write(
             'This app demonstrates a particularly problematic case of feature splitting we call "feature absorption" where a seemingly interpretable monosemantic latent '
-            'capturing a feature like "first letter is L" has many exceptions captured by other latents. Our paper with full analysis can be found here: (link coming soon).'
+            'capturing a feature like "first letter is L" has many exceptions captured by other latents. Our paper with full analysis can be found here: https://arxiv.org/abs/2409.14507.'
         )
 
         st.write(
