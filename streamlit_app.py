@@ -572,13 +572,13 @@ def render_task_list():
                 task["completed"] = False
 
 def main():
-    hide_header = """<style>
-    header {
-    visibility: hidden;
-    }
+    hide_elements = """
+    <style>
+    header {visibility: hidden;}
+    [data-testid="manage-app-button"] {display: none;}
     </style>
     """
-    st.markdown(hide_header, unsafe_allow_html=True)
+    st.markdown(hide_elements, unsafe_allow_html=True)
 
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
